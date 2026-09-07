@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="OnSteroidsApiUser.Application/OnSteroidsApiUser.Application.csproj" />
+  <Project Path="OnSteroidsApiUser.Domain/OnSteroidsApiUser.Domain.csproj" />
+  <Project Path="OnSteroidsApiUser.Infrastructure/OnSteroidsApiUser.Infrastructure.csproj" />
+  <Project Path="OnSteroidsApiUser.WebApi/OnSteroidsApiUser.WebApi.csproj" />
+</Solution>
