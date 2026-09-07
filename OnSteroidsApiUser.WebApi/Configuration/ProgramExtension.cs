@@ -35,7 +35,7 @@ public static class ProgramExtension
             configuration
                 .ReadFrom.Configuration(context.Configuration)
                 .Enrich.FromLogContext()
-                .WriteTo.Console();
+                .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{RequestId}] {Message:lj}{NewLine}{Exception}");
         });
     }
 

@@ -3,6 +3,7 @@ using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using OnSteroidsApiUser.Application.Abstractions.Interfaces.IHelpers;
 using OnSteroidsApiUser.Application.Abstractions.Interfaces.IServices;
 using OnSteroidsApiUser.Domain.Models.AppSettingsModels;
 
@@ -10,23 +11,22 @@ namespace OnSteroidsApiUser.Application.Services;
 
 public class EmailService(
     IOptions<AppSettings> appSettings,
+     IAuthDetailsHelper authDetailsHelper,
     ILogger<EmailService> logger
 ) : IEmailService
 {
     private readonly AppSettings _appSettings = appSettings.Value;
+    private readonly IAuthDetailsHelper _authDetails = authDetailsHelper;
     private readonly ILogger<EmailService> _logger = logger;
 
     public async Task<bool> SendEmailAsync(string emailReceiver, string emailSubject, string emailBody)
     {
         _logger.LogInformation("Attempting to send email to {EmailReceiver} with subject '{Subject}'", emailReceiver, emailSubject);
 
-        _logger.LogInformation("[EMAIL DISPATCH TO {Receiver}]:\nSubject: {Subject}\nBody:\n{Body}",
-            emailReceiver, emailSubject, emailBody);
-
         var emailSettings = _appSettings.EmailSettings;
         if (emailSettings == null || string.IsNullOrWhiteSpace(emailSettings.Host) || string.IsNullOrWhiteSpace(emailSettings.EmailSender))
         {
-            _logger.LogWarning("Email settings are not fully configured. Email was logged to console.");
+            _logger.LogWarning("[{RequestId}] Email settings are not fully configured. Email was logged to console.", _authDetails.RequestId);
             return false;
         }
 
@@ -58,12 +58,12 @@ public class EmailService(
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
 
-            _logger.LogInformation("Email sent successfully to {EmailReceiver}", emailReceiver);
+            _logger.LogInformation("[{RequestId}] Email sent successfully to {EmailReceiver}", _authDetails.RequestId, emailReceiver);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email via SMTP to {EmailReceiver}.", emailReceiver);
+            _logger.LogError(ex, "[{RequestId}] Failed to send email via SMTP to {EmailReceiver}.", _authDetails.RequestId, emailReceiver);
             return false;
         }
     }

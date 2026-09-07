@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using OnSteroidsApiUser.Application.Abstractions.Interfaces.IHelpers;
 using OnSteroidsApiUser.Application.Abstractions.Interfaces.IRepositories;
 using OnSteroidsApiUser.Application.Abstractions.Interfaces.IServices;
 using OnSteroidsApiUser.Application.Features.Helpers;
@@ -10,11 +11,13 @@ namespace OnSteroidsApiUser.Application.Services;
 public class RequestService(
     IRequestRepository requestRepository,
     ICapsuleRepository capsuleRepository,
+    IAuthDetailsHelper authDetailsHelper,
     ILogger<RequestService> logger
 ) : IRequestService
 {
     private readonly IRequestRepository _requestRepo = requestRepository;
     private readonly ICapsuleRepository _capsuleRepo = capsuleRepository;
+    private readonly IAuthDetailsHelper _authDetails = authDetailsHelper;
     private readonly ILogger<RequestService> _logger = logger;
 
     public async Task<(int StatusCode, object Response)> SaveRequestStateAsync(SaveRequestStateRequest req, Guid userId)
@@ -125,7 +128,27 @@ public class RequestService(
         var jsonFormData = JsonSerializer.Serialize(formDataList);
         savedReq.FormData = (await _requestRepo.SyncFormDataAsync(savedReq.Id, jsonFormData)).ToList();
 
-        _logger.LogInformation("Successfully saved request {RequestId} ({Name})", savedReq.Id, savedReq.Name);
+        var sanitizedReq = new
+        {
+            savedReq.Id,
+            savedReq.CapsuleId,
+            savedReq.UserId,
+            savedReq.Name,
+            savedReq.Url,
+            savedReq.Method,
+            savedReq.PayloadType,
+            savedReq.BodyType,
+            savedReq.RawType,
+            savedReq.AuthType,
+            AuthToken = string.IsNullOrEmpty(savedReq.AuthToken) ? null : "***",
+            savedReq.EncryptionAlgorithm,
+            EncryptionKey = string.IsNullOrEmpty(savedReq.EncryptionKey) ? null : "***",
+            ParamsCount = savedReq.Params.Count,
+            HeadersCount = savedReq.Headers.Count,
+            FormDataCount = savedReq.FormData.Count,
+            savedReq.UpdatedAt
+        };
+        _logger.LogInformation("[{RequestId}] Successfully saved request {RequestIdModel} ({Name}): {Model}", _authDetails.RequestId, savedReq.Id, savedReq.Name, JsonSerializer.Serialize(sanitizedReq));
         return BaseResponseHelpers.ReturnSuccess("Request saved successfully", savedReq);
     }
 
@@ -160,6 +183,7 @@ public class RequestService(
     public async Task<(int StatusCode, object Response)> DeleteAsync(Guid id, Guid userId)
     {
         await _requestRepo.DeleteAsync(id, userId);
+        _logger.LogInformation("[{RequestId}] User {UserId} deleted request {RequestIdModel}", _authDetails.RequestId, userId, id);
         return BaseResponseHelpers.ReturnSuccess<object>("Request deleted successfully", null);
     }
 
@@ -175,6 +199,7 @@ public class RequestService(
         duplicated.Headers = (await _requestRepo.GetHeadersByRequestAsync(duplicated.Id)).ToList();
         duplicated.FormData = (await _requestRepo.GetFormDataByRequestAsync(duplicated.Id)).ToList();
 
+        _logger.LogInformation("[{RequestId}] User {UserId} duplicated request {SourceId} to {NewId}", _authDetails.RequestId, userId, sourceId, duplicated.Id);
         return BaseResponseHelpers.ReturnSuccess("Request duplicated successfully", duplicated);
     }
 }
