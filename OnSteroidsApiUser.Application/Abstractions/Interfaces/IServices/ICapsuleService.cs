@@ -9,4 +9,7 @@ public interface ICapsuleService
     Task<(int StatusCode, object Response)> GetByIdAsync(Guid id, Guid userId);
     Task<(int StatusCode, object Response)> UpdateAsync(Guid id, UpdateCapsuleRequest request, Guid userId);
     Task<(int StatusCode, object Response)> DeleteAsync(Guid id, Guid userId);
+    Task<(int StatusCode, object Response)> BatchDeleteAsync(List<Guid> ids, Guid userId);
+    Task<(int StatusCode, object Response)> ShareCapsuleAsync(Guid id, Guid userId);
+    Task<(int StatusCode, object Response)> GetSharedCapsuleAsync(string token);
 }

@@ -59,4 +59,30 @@ public class CapsuleController(
         var (status, response) = await _capsuleService.DeleteAsync(id, _authDetails.UserId);
         return StatusCode(status, response);
     }
+
+    [HttpPost("batch-delete")]
+    [ProducesResponseType(typeof(BaseSuccessResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> BatchDelete([FromBody] Domain.Models.Request.BatchDeleteRequest request)
+    {
+        var (status, response) = await _capsuleService.BatchDeleteAsync(request.Ids, _authDetails.UserId);
+        return StatusCode(status, response);
+    }
+
+    [HttpPost("{id:guid}/share")]
+    [ProducesResponseType(typeof(BaseSuccessResponse<SharedCapsuleDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Share(Guid id)
+    {
+        var (status, response) = await _capsuleService.ShareCapsuleAsync(id, _authDetails.UserId);
+        return StatusCode(status, response);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("shared/{token}")]
+    [ProducesResponseType(typeof(BaseSuccessResponse<SharedCapsuleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetShared(string token)
+    {
+        var (status, response) = await _capsuleService.GetSharedCapsuleAsync(token);
+        return StatusCode(status, response);
+    }
 }

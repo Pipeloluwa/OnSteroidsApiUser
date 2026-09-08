@@ -18,3 +18,12 @@ public class UpdateCapsuleRequest
 {
     public string Name { get; set; } = string.Empty;
 }
+
+public class SharedCapsuleDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string ShareToken { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public List<Request.RequestDto> Requests { get; set; } = [];
+}

@@ -56,6 +56,46 @@ public class RequestController(
         return StatusCode(status, response);
     }
 
+    [HttpPost("batch-save")]
+    [ProducesResponseType(typeof(BaseSuccessResponse<IEnumerable<RequestDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> BatchSave([FromBody] List<SaveRequestStateRequest> requests)
+    {
+        var (status, response) = await _requestService.SaveBatchRequestStateAsync(requests, _authDetails.UserId);
+        return StatusCode(status, response);
+    }
+
+    [HttpPost("batch-delete")]
+    [ProducesResponseType(typeof(BaseSuccessResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> BatchDelete([FromBody] BatchDeleteRequest request)
+    {
+        var (status, response) = await _requestService.BatchDeleteAsync(request.Ids, _authDetails.UserId);
+        return StatusCode(status, response);
+    }
+
+    [HttpPost("{id:guid}/example")]
+    [ProducesResponseType(typeof(BaseSuccessResponse<RequestExampleDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateExample(Guid id, [FromBody] CreateRequestExampleRequest request)
+    {
+        var (status, response) = await _requestService.CreateExampleAsync(id, request, _authDetails.UserId);
+        return StatusCode(status, response);
+    }
+
+    [HttpGet("{id:guid}/example")]
+    [ProducesResponseType(typeof(BaseSuccessResponse<IEnumerable<RequestExampleDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetExamples(Guid id)
+    {
+        var (status, response) = await _requestService.GetExamplesByRequestAsync(id, _authDetails.UserId);
+        return StatusCode(status, response);
+    }
+
+    [HttpDelete("example/{exampleId:guid}")]
+    [ProducesResponseType(typeof(BaseSuccessResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteExample(Guid exampleId)
+    {
+        var (status, response) = await _requestService.DeleteExampleAsync(exampleId, _authDetails.UserId);
+        return StatusCode(status, response);
+    }
+
     [HttpPost("duplicate/{id:guid}")]
     [ProducesResponseType(typeof(BaseSuccessResponse<RequestDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status404NotFound)]

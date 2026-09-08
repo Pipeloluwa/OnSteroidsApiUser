@@ -206,4 +206,79 @@ public class RequestService(
         _logger.LogInformation("[{RequestId}] User {UserId} duplicated request {SourceId} to {NewId}", _authDetails.RequestId, userId, sourceId, duplicated.Id);
         return BaseResponseHelpers.ReturnSuccess("Request duplicated successfully", duplicated);
     }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, List<RequestExampleDto>> _examples = new();
+
+    public async Task<(int StatusCode, object Response)> SaveBatchRequestStateAsync(List<SaveRequestStateRequest> requests, Guid userId)
+    {
+        var savedList = new List<RequestDto>();
+        foreach (var req in requests)
+        {
+            var (status, response) = await SaveRequestStateAsync(req, userId);
+            if (status == 200 && response is Domain.Models.Common.BaseModels.Responses.BaseSuccessResponse<RequestDto> success && success.data != null)
+            {
+                savedList.Add(success.data);
+            }
+        }
+        return BaseResponseHelpers.ReturnSuccess("Batch requests saved successfully", savedList);
+    }
+
+    public async Task<(int StatusCode, object Response)> BatchDeleteAsync(List<Guid> ids, Guid userId)
+    {
+        foreach (var id in ids)
+        {
+            await _requestRepo.DeleteAsync(id, userId);
+            _examples.TryRemove(id, out _);
+        }
+        _logger.LogInformation("[{RequestId}] User {UserId} batch-deleted {Count} requests", _authDetails.RequestId, userId, ids.Count);
+        return BaseResponseHelpers.ReturnSuccess<object>("Requests deleted successfully", null);
+    }
+
+    public async Task<(int StatusCode, object Response)> CreateExampleAsync(Guid requestId, CreateRequestExampleRequest request, Guid userId)
+    {
+        await Task.CompletedTask;
+        var example = new RequestExampleDto
+        {
+            Id = Guid.NewGuid(),
+            RequestId = requestId,
+            Name = string.IsNullOrWhiteSpace(request.Name) ? "Example" : request.Name.Trim(),
+            RequestSnapshot = request.RequestSnapshot,
+            ResponseStatus = request.ResponseStatus,
+            ResponseBody = request.ResponseBody,
+            ResponseHeaders = request.ResponseHeaders,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _examples.AddOrUpdate(requestId, [example], (_, list) =>
+        {
+            lock (list)
+            {
+                list.Add(example);
+                return list;
+            }
+        });
+
+        _logger.LogInformation("[{RequestId}] User {UserId} created example {ExampleId} for request {ReqId}", _authDetails.RequestId, userId, example.Id, requestId);
+        return BaseResponseHelpers.ReturnSuccess("Example created successfully", example);
+    }
+
+    public async Task<(int StatusCode, object Response)> GetExamplesByRequestAsync(Guid requestId, Guid userId)
+    {
+        await Task.CompletedTask;
+        var list = _examples.TryGetValue(requestId, out var exList) ? exList.ToList() : [];
+        return BaseResponseHelpers.ReturnSuccess("Examples retrieved", list);
+    }
+
+    public async Task<(int StatusCode, object Response)> DeleteExampleAsync(Guid exampleId, Guid userId)
+    {
+        await Task.CompletedTask;
+        foreach (var kvp in _examples)
+        {
+            lock (kvp.Value)
+            {
+                kvp.Value.RemoveAll(e => e.Id == exampleId);
+            }
+        }
+        return BaseResponseHelpers.ReturnSuccess<object>("Example deleted successfully", null);
+    }
 }

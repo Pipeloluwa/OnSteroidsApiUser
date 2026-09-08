@@ -149,3 +149,29 @@ public class SaveRequestStateRequest
     public List<KeyValueItem>? Headers { get; set; }
     public List<FormDataItem>? FormData { get; set; }
 }
+
+public class RequestExampleDto
+{
+    public Guid Id { get; set; }
+    public Guid RequestId { get; set; }
+    public string Name { get; set; } = "Example";
+    public string? RequestSnapshot { get; set; }
+    public int? ResponseStatus { get; set; }
+    public string? ResponseBody { get; set; }
+    public string? ResponseHeaders { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateRequestExampleRequest
+{
+    public string Name { get; set; } = "Example";
+    public string? RequestSnapshot { get; set; }
+    public int? ResponseStatus { get; set; }
+    public string? ResponseBody { get; set; }
+    public string? ResponseHeaders { get; set; }
+}
+
+public class BatchDeleteRequest
+{
+    public List<Guid> Ids { get; set; } = [];
+}
