@@ -98,6 +98,10 @@ public class RequestService(
 
         if (savedReq == null)
         {
+            if (!string.IsNullOrWhiteSpace(req.Id) && Guid.TryParse(req.Id, out var newGuid))
+            {
+                dto.Id = newGuid;
+            }
             savedReq = await _requestRepo.CreateAsync(dto);
         }
 

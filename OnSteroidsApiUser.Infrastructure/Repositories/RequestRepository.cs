@@ -18,6 +18,7 @@ public class RequestRepository(
     {
         _logger.LogInformation("Creating request {Name} in capsule {CapsuleId}", req.Name, req.CapsuleId);
         var p = new DynamicParameters();
+        p.Add("@Id", req.Id != Guid.Empty ? req.Id : (Guid?)null);
         p.Add("@CapsuleId", req.CapsuleId);
         p.Add("@UserId", req.UserId);
         p.Add("@Name", req.Name);
