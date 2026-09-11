@@ -43,26 +43,26 @@ public class AuthService(
 
         var email = request.Email.Trim().ToLowerInvariant();
 
-        // 1. Ensure user is registered or exists
+        // Ensure user is registered or exists
         var user = await _userAuthRepo.RegisterAsync(email);
         if (user == null)
         {
             return BaseResponseHelpers.ReturnServerErrorData("Failed to register user", null);
         }
 
-        // 2. Generate secure 6-digit OTP
+        // Generate secure 6-digit OTP
         var otp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
         var expiryMinutes = _appSettings.OtpSettings?.OtpExpiryMinutes ?? 10;
         var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
 
-        // 3. Save OTP in DB
+        // Save OTP in DB
         var updated = await _userAuthRepo.SendOtpAsync(email, otp, expiresAt);
         if (updated == null)
         {
             return BaseResponseHelpers.ReturnServerErrorData("Sorry something went wrong, could not complete operation, please try again.", null);
         }
 
-        // 4. Send email
+        // Send email
         var subject = _appSettings.OtpSettings?.EmailSubject ?? "Your OnSteroids Login Code";
         var bodyTemplate = _appSettings.OtpSettings?.EmailBody ?? "Your login code is {otpToken}. It expires in {otpMinute} minutes.";
         var body = bodyTemplate
