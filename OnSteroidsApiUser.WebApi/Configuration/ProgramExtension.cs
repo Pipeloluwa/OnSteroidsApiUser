@@ -32,10 +32,16 @@ public static class ProgramExtension
     {
         builder.Host.UseSerilog((context, configuration) =>
         {
+            var logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+            var jsonLogPath = Path.Combine(logDirectory, "Structured", "log-.json");
+            var textLogPath = Path.Combine(logDirectory, "Text", "log-.txt");
+
             configuration
                 .ReadFrom.Configuration(context.Configuration)
                 .Enrich.FromLogContext()
-                .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{RequestId}] {Message:lj}{NewLine}{Exception}");
+                .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{RequestId}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.File(new Serilog.Formatting.Compact.CompactJsonFormatter(), jsonLogPath, rollingInterval: RollingInterval.Day)
+                .WriteTo.File(textLogPath, rollingInterval: RollingInterval.Day, outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{RequestId}] {Message:lj}{NewLine}{Exception}");
         });
     }
 
