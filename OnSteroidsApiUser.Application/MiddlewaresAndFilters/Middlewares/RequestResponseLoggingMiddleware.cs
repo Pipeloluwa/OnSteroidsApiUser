@@ -45,11 +45,7 @@ public class RequestResponseLoggingMiddleware(
                 using var scope = _scopeFactory.CreateScope();
                 var dapperConnection = scope.ServiceProvider.GetRequiredService<IDapperConnection>();
 
-                var sql = @"
-                    INSERT INTO [dbo].[ApiLogs] 
-                    (TraceId, Method, Path, RequestBody, StatusCode, ResponseBody) 
-                    VALUES 
-                    (@TraceId, @Method, @Path, @RequestBody, @StatusCode, @ResponseBody)";
+                var sql = "spApiLogs_Insert";
 
                 var parameters = new Dapper.DynamicParameters();
                 parameters.Add("TraceId", traceId);
@@ -59,11 +55,11 @@ public class RequestResponseLoggingMiddleware(
                 parameters.Add("StatusCode", statusCode);
                 parameters.Add("ResponseBody", responseBody);
 
-                await dapperConnection.Execute(parameters, sql, System.Data.CommandType.Text);
+                await dapperConnection.Execute(parameters, sql);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while inserting request/response log into database");
+                _logger.LogError(ex, "Error while inserting request or response log into database");
             }
         });
     }
