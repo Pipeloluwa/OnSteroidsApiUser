@@ -61,4 +61,19 @@ public class UserAuthRepository(
         parameters.Add("@Id", id);
         await _dapper.Execute(parameters, "dbo.spUserAuth_Logout");
     }
+    public async Task UpdateRefreshTokenAsync(Guid id, string refreshToken, DateTime expiry)
+    {
+        var parameters = new DynamicParameters();
+        parameters.Add("@Id", id);
+        parameters.Add("@RefreshToken", refreshToken);
+        parameters.Add("@RefreshTokenExpiryTime", expiry);
+        await _dapper.Execute(parameters, "dbo.spUserAuth_UpdateRefreshToken");
+    }
+
+    public async Task<UserAuthDto?> GetByRefreshTokenAsync(string refreshToken)
+    {
+        var parameters = new DynamicParameters();
+        parameters.Add("@RefreshToken", refreshToken);
+        return await _dapper.Query<UserAuthDto>(parameters, "dbo.spUserAuth_GetByRefreshToken");
+    }
 }

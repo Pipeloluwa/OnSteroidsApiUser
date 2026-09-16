@@ -56,4 +56,18 @@ public class AuthController(
         var (status, response) = await _authService.LogoutAsync(_authDetails.UserId);
         return StatusCode(status, response);
     }
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(BaseSuccessResponse<AuthLoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            return BadRequest(new BaseErrorResponse("Bad Request", "400", "Refresh token is required", null));
+        }
+        var (status, response) = await _authService.RefreshAsync(request);
+        return StatusCode(status, response);
+    }
 }

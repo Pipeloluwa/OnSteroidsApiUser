@@ -8,4 +8,5 @@ public interface IAuthService
     Task<(int StatusCode, object Response)> VerifyOtpAsync(VerifyOtpRequest request);
     Task<(int StatusCode, object Response)> GetCurrentUserAsync(Guid userId);
     Task<(int StatusCode, object Response)> LogoutAsync(Guid userId);
+    Task<(int StatusCode, object Response)> RefreshAsync(RefreshRequest request);
 }

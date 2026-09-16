@@ -97,12 +97,18 @@ public class AuthService(
                 return BaseResponseHelpers.ReturnValidationSemanticErrorData("Invalid or expired OTP code.", null);
             }
 
-            var (token, expiresAt) = _jwtTokenHelper.GenerateToken(user.Id, user.Email);
+                        var (token, expiresAt) = _jwtTokenHelper.GenerateToken(user.Id, user.Email);
+
+            // Generate refresh token
+            var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            await _userAuthRepo.UpdateRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
             var authResponse = new AuthLoginResponse
             {
                 User = user,
                 Token = token,
+                RefreshToken = refreshToken,
                 ExpiresAt = expiresAt
             };
 
@@ -133,5 +139,29 @@ public class AuthService(
         await _userAuthRepo.LogoutAsync(userId);
         _logger.LogInformation("[{RequestId}] User {UserId} logged out successfully", _authDetails.RequestId, userId);
         return BaseResponseHelpers.ReturnSuccess<object>("Logged out successfully", null);
+    }
+    public async Task<(int StatusCode, object Response)> RefreshAsync(RefreshRequest request)
+    {
+        var user = await _userAuthRepo.GetByRefreshTokenAsync(request.RefreshToken);
+        if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        {
+            return BaseResponseHelpers.ReturnValidationSemanticErrorData("Invalid or expired refresh token", null);
+        }
+
+        var (token, expiresAt) = _jwtTokenHelper.GenerateToken(user.Id, user.Email);
+        
+        var newRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var newRefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        await _userAuthRepo.UpdateRefreshTokenAsync(user.Id, newRefreshToken, newRefreshTokenExpiry);
+
+        var authResponse = new AuthLoginResponse
+        {
+            User = user,
+            Token = token,
+            RefreshToken = newRefreshToken,
+            ExpiresAt = expiresAt
+        };
+
+        return BaseResponseHelpers.ReturnSuccess("Token refreshed successfully", authResponse);
     }
 }

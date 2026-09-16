@@ -10,4 +10,6 @@ public interface IUserAuthRepository
     Task<UserAuthDto?> GetByEmailAsync(string email);
     Task<UserAuthDto?> GetByIdAsync(Guid id);
     Task LogoutAsync(Guid id);
+    Task UpdateRefreshTokenAsync(Guid id, string refreshToken, DateTime expiry);
+    Task<UserAuthDto?> GetByRefreshTokenAsync(string refreshToken);
 }
