@@ -70,10 +70,9 @@ public class AuthService(
             .Replace("{otpMinute}", expiryMinutes.ToString());
 
         _logger.LogInformation("[{RequestId}] OTP dispatched successfully for {Email}", _authDetails.RequestId, email);
-        return (await _emailService.SendEmailAsync(email, subject, body)) ? BaseResponseHelpers.ReturnSuccess<object>($"OTP sent to {email}. Valid for {expiryMinutes} minutes.", new
+        return (await _emailService.SendEmailAsync(email, subject, body)) ? BaseResponseHelpers.ReturnSuccess<object>($"OTP sent to {email}.", new
         {
-            email,
-            expiresAt
+            email
         }) :   BaseResponseHelpers.ReturnServerErrorData("Sorry something went wrong, could not complete operation, please try again.", null); ;
     }
 
