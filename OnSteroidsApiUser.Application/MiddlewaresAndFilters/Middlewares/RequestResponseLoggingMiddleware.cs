@@ -23,7 +23,7 @@ public class RequestResponseLoggingMiddleware(
     {
         var requestBody = await GetRequestBodyAsync(context.Request);
         var method = context.Request.Method;
-        var path = context.Request.Path;
+        var path = context.Request.Path.Value;
         var traceId = context.TraceIdentifier;
 
         var originalBodyStream = context.Response.Body;
@@ -81,3 +81,4 @@ public class RequestResponseLoggingMiddleware(
         return body;
     }
 }
+
