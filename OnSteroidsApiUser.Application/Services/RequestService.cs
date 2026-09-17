@@ -67,6 +67,8 @@ public class RequestService(
             AuthToken = req.Auth?.Token,
             PreRequestScript = req.Scripts?.PreRequest,
             PostResponseScript = req.Scripts?.PostResponse,
+            TestScript = req.Scripts?.TestScript,
+            TestScriptEnabled = req.Scripts?.TestScriptEnabled ?? false,
             EncryptionAlgorithm = req.Encryption?.Algorithm ?? "none",
             EncryptionKey = req.Encryption?.Key,
             AutoEncryptBody = req.Encryption?.AutoEncryptBody ?? false,
@@ -282,3 +284,4 @@ public class RequestService(
         return BaseResponseHelpers.ReturnSuccess<object>("Example deleted successfully", null);
     }
 }
+

@@ -34,6 +34,8 @@ public class RequestRepository(
         p.Add("@AuthToken", req.AuthToken);
         p.Add("@PreRequestScript", req.PreRequestScript);
         p.Add("@PostResponseScript", req.PostResponseScript);
+        p.Add("@TestScript", req.TestScript);
+        p.Add("@TestScriptEnabled", req.TestScriptEnabled);
         p.Add("@EncryptionAlgorithm", req.EncryptionAlgorithm);
         p.Add("@EncryptionKey", req.EncryptionKey);
         p.Add("@AutoEncryptBody", req.AutoEncryptBody);
@@ -69,6 +71,8 @@ public class RequestRepository(
         p.Add("@AuthToken", req.AuthToken);
         p.Add("@PreRequestScript", req.PreRequestScript);
         p.Add("@PostResponseScript", req.PostResponseScript);
+        p.Add("@TestScript", req.TestScript);
+        p.Add("@TestScriptEnabled", req.TestScriptEnabled);
         p.Add("@EncryptionAlgorithm", req.EncryptionAlgorithm);
         p.Add("@EncryptionKey", req.EncryptionKey);
         p.Add("@AutoEncryptBody", req.AutoEncryptBody);
@@ -162,3 +166,4 @@ public class RequestRepository(
         return await _dapper.QueryAll<RequestFormDataDto>(p, "dbo.spRequestFormData_GetByRequest");
     }
 }
+

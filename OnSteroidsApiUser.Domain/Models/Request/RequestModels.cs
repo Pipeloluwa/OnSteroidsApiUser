@@ -52,6 +52,8 @@ public class RequestDto
 
     public string? PreRequestScript { get; set; }
     public string? PostResponseScript { get; set; }
+    public string? TestScript { get; set; }
+    public bool TestScriptEnabled { get; set; } = false;
 
     public string EncryptionAlgorithm { get; set; } = "none";
     public string? EncryptionKey { get; set; }
@@ -102,6 +104,8 @@ public class ScriptsStateDto
 {
     public string? PreRequest { get; set; }
     public string? PostResponse { get; set; }
+    public string? TestScript { get; set; }
+    public bool TestScriptEnabled { get; set; } = false;
 }
 
 public class EncryptionStateDto
@@ -175,3 +179,4 @@ public class BatchDeleteRequest
 {
     public List<Guid> Ids { get; set; } = [];
 }
+
