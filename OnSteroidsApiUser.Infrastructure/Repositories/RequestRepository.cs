@@ -57,6 +57,7 @@ public class RequestRepository(
         _logger.LogInformation("Updating request {Id} for user {UserId}", req.Id, req.UserId);
         var p = new DynamicParameters();
         p.Add("@Id", req.Id);
+        p.Add("@CapsuleId", req.CapsuleId);
         p.Add("@UserId", req.UserId);
         p.Add("@Name", req.Name);
         p.Add("@Url", req.Url);
@@ -166,4 +167,6 @@ public class RequestRepository(
         return await _dapper.QueryAll<RequestFormDataDto>(p, "dbo.spRequestFormData_GetByRequest");
     }
 }
+
+
 
