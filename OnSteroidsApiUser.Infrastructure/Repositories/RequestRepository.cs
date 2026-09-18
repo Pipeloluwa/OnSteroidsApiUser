@@ -40,7 +40,6 @@ public class RequestRepository(
         p.Add("@EncryptionKey", req.EncryptionKey);
         p.Add("@AutoEncryptBody", req.AutoEncryptBody);
         p.Add("@AutoEncryptHeaders", req.AutoEncryptHeaders);
-        p.Add("@EncryptionChannel", req.EncryptionChannel);
         p.Add("@EncryptedHeaders", req.EncryptedHeaders);
         p.Add("@EncryptedBodyPaths", req.EncryptedBodyPaths);
         p.Add("@EncryptionScript", req.EncryptionScript);
@@ -78,7 +77,6 @@ public class RequestRepository(
         p.Add("@EncryptionKey", req.EncryptionKey);
         p.Add("@AutoEncryptBody", req.AutoEncryptBody);
         p.Add("@AutoEncryptHeaders", req.AutoEncryptHeaders);
-        p.Add("@EncryptionChannel", req.EncryptionChannel);
         p.Add("@EncryptedHeaders", req.EncryptedHeaders);
         p.Add("@EncryptedBodyPaths", req.EncryptedBodyPaths);
         p.Add("@EncryptionScript", req.EncryptionScript);

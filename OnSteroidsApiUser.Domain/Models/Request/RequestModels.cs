@@ -59,7 +59,6 @@ public class RequestDto
     public string? EncryptionKey { get; set; }
     public bool AutoEncryptBody { get; set; }
     public bool AutoEncryptHeaders { get; set; }
-    public string? EncryptionChannel { get; set; }
     public string? EncryptedHeaders { get; set; }
     public string? EncryptedBodyPaths { get; set; }
     public string? EncryptionScript { get; set; }

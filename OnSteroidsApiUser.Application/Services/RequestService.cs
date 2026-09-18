@@ -73,7 +73,6 @@ public class RequestService(
             EncryptionKey = req.Encryption?.Key,
             AutoEncryptBody = req.Encryption?.AutoEncryptBody ?? false,
             AutoEncryptHeaders = req.Encryption?.AutoEncryptHeaders ?? false,
-            EncryptionChannel = req.Encryption?.ChannelName,
             EncryptedHeaders = req.Encryption?.EncryptedHeaders != null
                 ? JsonSerializer.Serialize(req.Encryption.EncryptedHeaders)
                 : null,
