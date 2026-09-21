@@ -11,6 +11,7 @@ builder.AddControllerConfig();
 builder.Services.AddSwaggerConfig();
 builder.AddProjectCors();
 builder.AddProjectAuthentication();
+builder.AddProjectRateLimiter();
 
 // ── Dependency Injection ───────────────────────────────────────
 builder.Services.AddProjectValidators();
@@ -30,6 +31,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddlewareExtensions();
+app.UseRateLimiter();
 app.UseCors(nameof(CorsEnum._allowFrontend));
 app.UseAuthentication();
 app.UseAuthorization();

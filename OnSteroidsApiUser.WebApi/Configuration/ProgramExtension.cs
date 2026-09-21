@@ -1,6 +1,8 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OnSteroidsApiUser.Application.Abstractions.Interfaces.IDapper;
@@ -193,5 +195,24 @@ public static class ProgramExtension
     public static void AddProjectValidators(this IServiceCollection services)
     {
         services.AddValidatorsFromAssemblyContaining<IAuthService>();
+    }
+
+    public static void AddProjectRateLimiter(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 100,
+                        QueueLimit = 2,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
+
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        });
     }
 }
