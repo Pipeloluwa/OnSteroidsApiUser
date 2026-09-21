@@ -101,15 +101,31 @@ public static class ProgramExtension
 
     public static void AddProjectCors(this WebApplicationBuilder builder)
     {
+        var allowedOriginsString = builder.Configuration.GetValue<string>("AppSettings:AllowedOrigins");
+        var allowedOrigins = string.IsNullOrWhiteSpace(allowedOriginsString) 
+            ? Array.Empty<string>() 
+            : allowedOriginsString.Split(',').Select(o => o.Trim()).ToArray();
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy(
                 nameof(CorsEnum._allowFrontend),
-                policy => policy
-                    .SetIsOriginAllowed(_ => true)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials()
+                policy => 
+                {
+                    if (allowedOrigins.Length > 0 && allowedOrigins[0] != "*")
+                    {
+                        policy.WithOrigins(allowedOrigins);
+                    }
+                    else
+                    {
+                        policy.SetIsOriginAllowed(_ => true);
+                    }
+
+                    policy.AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials()
+                          .WithExposedHeaders("*");
+                }
             );
         });
     }
