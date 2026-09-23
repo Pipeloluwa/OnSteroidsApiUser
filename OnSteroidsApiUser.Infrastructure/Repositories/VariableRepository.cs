@@ -14,30 +14,35 @@ public class VariableRepository(
     private readonly IDapperConnection _dapper = dapperConnection;
     private readonly ILogger<VariableRepository> _logger = logger;
 
-    public async Task<VariableDto?> CreateAsync(Guid userId, string key, string value, bool isEnabled)
+    public async Task<VariableDto?> CreateAsync(Guid userId, Guid? capsuleId, string key, string value, string type, bool isEnabled)
     {
         var p = new DynamicParameters();
         p.Add("@UserId", userId);
+        p.Add("@CapsuleId", capsuleId);
         p.Add("@VariableKey", key);
         p.Add("@VariableValue", value);
+        p.Add("@Type", type);
         p.Add("@IsEnabled", isEnabled);
         return await _dapper.Query<VariableDto>(p, "dbo.spVariable_Create");
     }
 
-    public async Task<IEnumerable<VariableDto>> GetAllByUserAsync(Guid userId)
+    public async Task<IEnumerable<VariableDto>> GetAllByUserAsync(Guid userId, Guid? capsuleId = null)
     {
         var p = new DynamicParameters();
         p.Add("@UserId", userId);
+        p.Add("@CapsuleId", capsuleId);
         return await _dapper.QueryAll<VariableDto>(p, "dbo.spVariable_GetAllByUser");
     }
 
-    public async Task<VariableDto?> UpdateAsync(Guid id, Guid userId, string? key, string? value, bool? isEnabled)
+    public async Task<VariableDto?> UpdateAsync(Guid id, Guid userId, Guid? capsuleId, string? key, string? value, string? type, bool? isEnabled)
     {
         var p = new DynamicParameters();
         p.Add("@Id", id);
         p.Add("@UserId", userId);
+        p.Add("@CapsuleId", capsuleId);
         p.Add("@VariableKey", key);
         p.Add("@VariableValue", value);
+        p.Add("@Type", type);
         p.Add("@IsEnabled", isEnabled);
         return await _dapper.Query<VariableDto>(p, "dbo.spVariable_Update");
     }
@@ -50,10 +55,11 @@ public class VariableRepository(
         await _dapper.Execute(p, "dbo.spVariable_Delete");
     }
 
-    public async Task<IEnumerable<VariableDto>> SyncAsync(Guid userId, string jsonData)
+    public async Task<IEnumerable<VariableDto>> SyncAsync(Guid userId, Guid? capsuleId, string jsonData)
     {
         var p = new DynamicParameters();
         p.Add("@UserId", userId);
+        p.Add("@CapsuleId", capsuleId);
         p.Add("@JsonData", jsonData);
         return await _dapper.QueryAll<VariableDto>(p, "dbo.spVariable_Sync");
     }

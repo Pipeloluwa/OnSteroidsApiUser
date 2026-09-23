@@ -18,23 +18,23 @@ public class VariableService(
     private readonly IAuthDetailsHelper _authDetails = authDetailsHelper;
     private readonly ILogger<VariableService> _logger = logger;
 
-    public async Task<(int StatusCode, object Response)> GetAllByUserAsync(Guid userId)
+    public async Task<(int StatusCode, object Response)> GetAllByUserAsync(Guid userId, Guid? capsuleId = null)
     {
-        var variables = await _variableRepo.GetAllByUserAsync(userId);
+        var variables = await _variableRepo.GetAllByUserAsync(userId, capsuleId);
         return BaseResponseHelpers.ReturnSuccess("Variables retrieved", variables);
     }
 
     public async Task<(int StatusCode, object Response)> SyncVariablesAsync(SyncVariablesRequest request, Guid userId)
     {
         var items = (request.Variables ?? [])
-            .Select(v => new { id = v.Id, key = v.Key, value = v.Value, enabled = v.Enabled })
+            .Select(v => new { id = v.Id, key = v.Key, value = v.Value, type = v.Type, enabled = v.Enabled })
             .ToList();
 
-        var sanitizedItems = items.Select(v => new { v.id, v.key, value = "***", v.enabled }).ToList();
-        _logger.LogInformation("[{RequestId}] Syncing {Count} variables for user {UserId}: {Variables}", _authDetails.RequestId, items.Count, userId, JsonSerializer.Serialize(sanitizedItems));
+        var sanitizedItems = items.Select(v => new { v.id, v.key, value = "***", v.type, v.enabled }).ToList();
+        _logger.LogInformation("[{RequestId}] Syncing {Count} variables for user {UserId}, capsule {CapsuleId}: {Variables}", _authDetails.RequestId, items.Count, userId, request.CapsuleId, JsonSerializer.Serialize(sanitizedItems));
 
         var json = JsonSerializer.Serialize(items);
-        var result = await _variableRepo.SyncAsync(userId, json);
+        var result = await _variableRepo.SyncAsync(userId, request.CapsuleId, json);
         return BaseResponseHelpers.ReturnSuccess("Variables synced successfully", result);
     }
 }

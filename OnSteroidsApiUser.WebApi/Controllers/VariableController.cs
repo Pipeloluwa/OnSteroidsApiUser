@@ -20,9 +20,9 @@ public class VariableController(
 
     [HttpGet]
     [ProducesResponseType(typeof(BaseSuccessResponse<IEnumerable<VariableDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? capsuleId = null)
     {
-        var (status, response) = await _variableService.GetAllByUserAsync(_authDetails.UserId);
+        var (status, response) = await _variableService.GetAllByUserAsync(_authDetails.UserId, capsuleId);
         return StatusCode(status, response);
     }
 
