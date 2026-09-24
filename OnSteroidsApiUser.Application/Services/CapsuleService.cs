@@ -35,7 +35,7 @@ public class CapsuleService(
             return BaseResponseHelpers.ReturnValidationSyntaxError("Invalid request", errors);
         }
 
-        var capsule = await _capsuleRepo.CreateAsync(userId, request.Name.Trim());
+        var capsule = await _capsuleRepo.CreateAsync(userId, request.Name.Trim(), request.Id);
         _logger.LogInformation("[{RequestId}] User {UserId} created capsule: {Capsule}", _authDetails.RequestId, userId, JsonSerializer.Serialize(capsule));
         return BaseResponseHelpers.ReturnSuccess("Capsule created successfully", capsule);
     }

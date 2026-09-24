@@ -14,12 +14,13 @@ public class CapsuleRepository(
     private readonly IDapperConnection _dapper = dapperConnection;
     private readonly ILogger<CapsuleRepository> _logger = logger;
 
-    public async Task<CapsuleDto?> CreateAsync(Guid userId, string name)
+    public async Task<CapsuleDto?> CreateAsync(Guid userId, string name, Guid? id = null)
     {
         _logger.LogInformation("Creating capsule {Name} for user {UserId}", name, userId);
         var parameters = new DynamicParameters();
         parameters.Add("@UserId", userId);
         parameters.Add("@Name", name);
+        parameters.Add("@Id", id);
         return await _dapper.Query<CapsuleDto>(parameters, "dbo.spCapsule_Create");
     }
 
