@@ -35,13 +35,18 @@ public class DapperConnection(
     public async Task<int> Execute(DynamicParameters parameters, string procedureName, CommandType commandType = CommandType.StoredProcedure)
     {
         var pDict = ExtractParameters(parameters);
-        _logger.LogInformation("Executing DB {ProcedureName} with params: {Params}", procedureName, Newtonsoft.Json.JsonConvert.SerializeObject(pDict));
+        if (procedureName != "spApiLogs_Insert")
+            _logger.LogInformation("Executing DB {ProcedureName} with params: {Params}", procedureName, Newtonsoft.Json.JsonConvert.SerializeObject(pDict));
+        
         using var connection = new SqlConnection(ConnectionString);
         try
         {
             await connection.OpenAsync();
             var rows = await connection.ExecuteAsync(procedureName, parameters, commandType: commandType);
-            _logger.LogInformation("Executed DB {ProcedureName}, affected rows: {Rows}", procedureName, rows);
+            
+            if (procedureName != "spApiLogs_Insert")
+                _logger.LogInformation("Executed DB {ProcedureName}, affected rows: {Rows}", procedureName, rows);
+                
             return rows;
         }
         catch (Exception ex)
