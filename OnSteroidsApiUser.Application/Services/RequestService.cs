@@ -83,7 +83,9 @@ public class RequestService(
             FollowRedirects = req.Settings?.FollowRedirects ?? true,
             VerifySsl = req.Settings?.VerifySsl ?? true,
             EnableCookies = req.Settings?.EnableCookies ?? true,
-            BypassCors = req.Settings?.BypassCors ?? true
+            BypassCors = req.Settings?.BypassCors ?? true,
+            PostTriggerTabId = req.PostTriggerTabId,
+            AutoAuthEnabled = req.AutoAuthEnabled ?? false
         };
 
         RequestDto? savedReq = null;

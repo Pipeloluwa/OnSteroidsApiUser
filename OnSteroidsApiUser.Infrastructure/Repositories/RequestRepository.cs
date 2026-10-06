@@ -47,6 +47,8 @@ public class RequestRepository(
         p.Add("@VerifySsl", req.VerifySsl);
         p.Add("@EnableCookies", req.EnableCookies);
         p.Add("@BypassCors", req.BypassCors);
+        p.Add("@PostTriggerTabId", req.PostTriggerTabId);
+        p.Add("@AutoAuthEnabled", req.AutoAuthEnabled);
 
         return await _dapper.Query<RequestDto>(p, "dbo.spRequest_Create");
     }
@@ -84,6 +86,8 @@ public class RequestRepository(
         p.Add("@VerifySsl", req.VerifySsl);
         p.Add("@EnableCookies", req.EnableCookies);
         p.Add("@BypassCors", req.BypassCors);
+        p.Add("@PostTriggerTabId", req.PostTriggerTabId);
+        p.Add("@AutoAuthEnabled", req.AutoAuthEnabled);
 
         return await _dapper.Query<RequestDto>(p, "dbo.spRequest_Update");
     }

@@ -35,7 +35,7 @@ public class CapsuleService(
             return BaseResponseHelpers.ReturnValidationSyntaxError("Invalid request", errors);
         }
 
-        var capsule = await _capsuleRepo.CreateAsync(userId, request.Name.Trim(), request.Id);
+        var capsule = await _capsuleRepo.CreateAsync(userId, request.Name.Trim(), request.Id, request.AutoAuthEnabled, request.AutoAuthEndpointId);
         _logger.LogInformation("[{RequestId}] User {UserId} created capsule: {Capsule}", _authDetails.RequestId, userId, JsonSerializer.Serialize(capsule));
         return BaseResponseHelpers.ReturnSuccess("Capsule created successfully", capsule);
     }
@@ -76,7 +76,7 @@ public class CapsuleService(
             return BaseResponseHelpers.ReturnValidationSyntaxError("Invalid request", errors);
         }
 
-        var capsule = await _capsuleRepo.UpdateAsync(id, userId, request.Name.Trim());
+        var capsule = await _capsuleRepo.UpdateAsync(id, userId, request.Name.Trim(), request.AutoAuthEnabled, request.AutoAuthEndpointId);
         if (capsule == null)
         {
             return BaseResponseHelpers.ReturnNotFoundError("Capsule not found", null);

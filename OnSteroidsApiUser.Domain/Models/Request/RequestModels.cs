@@ -67,6 +67,8 @@ public class RequestDto
     public bool VerifySsl { get; set; } = true;
     public bool EnableCookies { get; set; } = true;
     public bool BypassCors { get; set; } = true;
+    public string? PostTriggerTabId { get; set; }
+    public bool AutoAuthEnabled { get; set; } = false;
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -147,6 +149,8 @@ public class SaveRequestStateRequest
     public ScriptsStateDto? Scripts { get; set; }
     public EncryptionStateDto? Encryption { get; set; }
     public SettingsStateDto? Settings { get; set; }
+    public string? PostTriggerTabId { get; set; }
+    public bool? AutoAuthEnabled { get; set; }
 
     public List<KeyValueItem>? Params { get; set; }
     public List<KeyValueItem>? Headers { get; set; }

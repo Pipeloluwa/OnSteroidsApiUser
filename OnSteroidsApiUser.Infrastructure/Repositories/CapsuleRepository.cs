@@ -14,13 +14,15 @@ public class CapsuleRepository(
     private readonly IDapperConnection _dapper = dapperConnection;
     private readonly ILogger<CapsuleRepository> _logger = logger;
 
-    public async Task<CapsuleDto?> CreateAsync(Guid userId, string name, Guid? id = null)
+    public async Task<CapsuleDto?> CreateAsync(Guid userId, string name, Guid? id = null, string? autoAuthEnabled = null, string? autoAuthEndpointId = null)
     {
         _logger.LogInformation("Creating capsule {Name} for user {UserId}", name, userId);
         var parameters = new DynamicParameters();
         parameters.Add("@UserId", userId);
         parameters.Add("@Name", name);
         parameters.Add("@Id", id);
+        parameters.Add("@AutoAuthEnabled", autoAuthEnabled ?? "off");
+        parameters.Add("@AutoAuthEndpointId", autoAuthEndpointId);
         return await _dapper.Query<CapsuleDto>(parameters, "dbo.spCapsule_Create");
     }
 
@@ -39,13 +41,15 @@ public class CapsuleRepository(
         return await _dapper.Query<CapsuleDto>(parameters, "dbo.spCapsule_GetById");
     }
 
-    public async Task<CapsuleDto?> UpdateAsync(Guid id, Guid userId, string name)
+    public async Task<CapsuleDto?> UpdateAsync(Guid id, Guid userId, string name, string? autoAuthEnabled = null, string? autoAuthEndpointId = null)
     {
         _logger.LogInformation("Updating capsule {Id} for user {UserId}", id, userId);
         var parameters = new DynamicParameters();
         parameters.Add("@Id", id);
         parameters.Add("@UserId", userId);
         parameters.Add("@Name", name);
+        parameters.Add("@AutoAuthEnabled", autoAuthEnabled);
+        parameters.Add("@AutoAuthEndpointId", autoAuthEndpointId);
         return await _dapper.Query<CapsuleDto>(parameters, "dbo.spCapsule_Update");
     }
 
