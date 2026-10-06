@@ -13,6 +13,7 @@ using OnSteroidsApiUser.Application.Features.Helpers;
 using OnSteroidsApiUser.Application.Services;
 using OnSteroidsApiUser.Domain.Constants.Enums;
 using OnSteroidsApiUser.Domain.Models.AppSettingsModels;
+using OnSteroidsApiUser.Domain.Models.Common.BaseModels.Responses;
 using OnSteroidsApiUser.Infrastructure.Dapper;
 using OnSteroidsApiUser.Infrastructure.Repositories;
 using Serilog;
@@ -199,8 +200,15 @@ public static class ProgramExtension
         services.AddValidatorsFromAssemblyContaining<IAuthService>();
     }
 
+    public const string OtpGeneratePolicy = "OtpGenerate";
+    public const string OtpValidatePolicy = "OtpValidate";
+
     public static void AddProjectRateLimiter(this WebApplicationBuilder builder)
     {
+        var otpRateLimit = builder.Configuration
+            .GetSection("AppSettings:OtpSettings:RateLimit")
+            .Get<OtpRateLimitSettings>() ?? new OtpRateLimitSettings();
+
         builder.Services.AddRateLimiter(options =>
         {
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
@@ -214,7 +222,63 @@ public static class ProgramExtension
                         Window = TimeSpan.FromMinutes(1)
                     }));
 
+            // OTP generation (send-otp) — per client IP
+            options.AddPolicy(OtpGeneratePolicy, context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: $"{OtpGeneratePolicy}:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = Math.Max(1, otpRateLimit.Generate.PermitLimit),
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(Math.Max(1, otpRateLimit.Generate.WindowMinutes))
+                    }));
+
+            // OTP validation (verify-otp) — per client IP
+            options.AddPolicy(OtpValidatePolicy, context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: $"{OtpValidatePolicy}:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = Math.Max(1, otpRateLimit.Validate.PermitLimit),
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(Math.Max(1, otpRateLimit.Validate.WindowMinutes))
+                    }));
+
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                var http = context.HttpContext;
+                var policyName = http.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+
+                var policy = policyName switch
+                {
+                    OtpGeneratePolicy => otpRateLimit.Generate,
+                    OtpValidatePolicy => otpRateLimit.Validate,
+                    _ => null
+                };
+
+                // Work out how long until the client may retry
+                TimeSpan retryAfter = TimeSpan.FromMinutes(policy?.WindowMinutes ?? 1);
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var leaseRetryAfter))
+                {
+                    retryAfter = leaseRetryAfter;
+                }
+                var retryAfterSeconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
+                var retryAfterMinutes = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalMinutes));
+
+                var template = policy?.ErrorMessage
+                    ?? "Too many requests. Please try again after {retryAfterMinutes} minute(s).";
+                var message = template.Replace("{retryAfterMinutes}", retryAfterMinutes.ToString());
+
+                http.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                http.Response.Headers.RetryAfter = retryAfterSeconds.ToString();
+                await http.Response.WriteAsJsonAsync(
+                    new BaseErrorResponse("Too Many Requests", "429", message, [message]),
+                    cancellationToken);
+            };
         });
     }
 }

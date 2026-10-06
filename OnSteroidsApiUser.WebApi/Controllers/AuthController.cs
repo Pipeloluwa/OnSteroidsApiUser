@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using OnSteroidsApiUser.WebApi.Configuration;
 using OnSteroidsApiUser.Application.Abstractions.Interfaces.IHelpers;
 using OnSteroidsApiUser.Application.Abstractions.Interfaces.IServices;
 using OnSteroidsApiUser.Domain.Models.Auth;
@@ -19,8 +21,10 @@ public class AuthController(
 
     [HttpPost("send-otp")]
     [AllowAnonymous]
+    [EnableRateLimiting(ProgramExtension.OtpGeneratePolicy)]
     [ProducesResponseType(typeof(BaseSuccessResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest request)
     {
         var (status, response) = await _authService.SendOtpAsync(request);
@@ -29,9 +33,11 @@ public class AuthController(
 
     [HttpPost("verify-otp")]
     [AllowAnonymous]
+    [EnableRateLimiting(ProgramExtension.OtpValidatePolicy)]
     [ProducesResponseType(typeof(BaseSuccessResponse<AuthLoginResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
     {
         var (status, response) = await _authService.VerifyOtpAsync(request);

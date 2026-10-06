@@ -31,6 +31,36 @@ public class OtpSettings
     public int OtpExpiryMinutes { get; set; } = 10;
     public string? EmailSubject { get; set; } = "Your OnSteroids Login Code";
     public string? EmailBody { get; set; } = "Your verification code is: {otpToken}. It will expire in {otpMinute} minutes.";
+    public OtpRateLimitSettings? RateLimit { get; set; } = new();
+}
+
+public class OtpRateLimitSettings
+{
+    public RateLimitPolicySettings Generate { get; set; } = new()
+    {
+        PermitLimit = 7,
+        WindowMinutes = 15,
+        ErrorMessage = "Too many OTP requests. Please try again after {retryAfterMinutes} minute(s)."
+    };
+
+    public RateLimitPolicySettings Validate { get; set; } = new()
+    {
+        PermitLimit = 3,
+        WindowMinutes = 15,
+        ErrorMessage = "Too many OTP verification attempts. Please try again after {retryAfterMinutes} minute(s)."
+    };
+}
+
+public class RateLimitPolicySettings
+{
+    /// <summary>Maximum number of requests allowed per client within the window.</summary>
+    public int PermitLimit { get; set; }
+
+    /// <summary>Length of the fixed window in minutes.</summary>
+    public int WindowMinutes { get; set; }
+
+    /// <summary>Message returned when the limit is exceeded. Supports the {retryAfterMinutes} placeholder.</summary>
+    public string? ErrorMessage { get; set; }
 }
 
 public class EmailSettings
