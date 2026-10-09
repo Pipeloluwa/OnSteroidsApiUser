@@ -205,6 +205,16 @@ public static class ProgramExtension
 
     public static void AddProjectRateLimiter(this WebApplicationBuilder builder)
     {
+        var globalRateLimit = builder.Configuration
+            .GetSection("AppSettings:GlobalRateLimiter")
+            .Get<RateLimitPolicySettings>() ?? new RateLimitPolicySettings
+            {
+                PermitLimit = 300,
+                WindowMinutes = 1,
+                QueueLimit = 2,
+                ErrorMessage = "Too many requests. Please try again after {retryAfterMinutes} minute(s)."
+            };
+
         var otpRateLimit = builder.Configuration
             .GetSection("AppSettings:OtpSettings:RateLimit")
             .Get<OtpRateLimitSettings>() ?? new OtpRateLimitSettings();
@@ -217,9 +227,9 @@ public static class ProgramExtension
                     factory: _ => new FixedWindowRateLimiterOptions
                     {
                         AutoReplenishment = true,
-                        PermitLimit = 100,
-                        QueueLimit = 2,
-                        Window = TimeSpan.FromMinutes(1)
+                        PermitLimit = Math.Max(1, globalRateLimit.PermitLimit),
+                        QueueLimit = Math.Max(0, globalRateLimit.QueueLimit),
+                        Window = TimeSpan.FromMinutes(Math.Max(1, globalRateLimit.WindowMinutes))
                     }));
 
             // OTP generation (send-otp) — per client IP
@@ -257,7 +267,7 @@ public static class ProgramExtension
                 {
                     OtpGeneratePolicy => otpRateLimit.Generate,
                     OtpValidatePolicy => otpRateLimit.Validate,
-                    _ => null
+                    _ => globalRateLimit
                 };
 
                 // Work out how long until the client may retry

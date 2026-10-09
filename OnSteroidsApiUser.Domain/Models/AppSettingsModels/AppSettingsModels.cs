@@ -8,6 +8,7 @@ public class AppSettings
     public JWTSettings? JWTSettings { get; set; }
     public OtpSettings? OtpSettings { get; set; }
     public EmailSettings? EmailSettings { get; set; }
+    public RateLimitPolicySettings? GlobalRateLimiter { get; set; } = new();
 }
 
 public class SqlSettings
@@ -58,6 +59,9 @@ public class RateLimitPolicySettings
 
     /// <summary>Length of the fixed window in minutes.</summary>
     public int WindowMinutes { get; set; }
+
+    /// <summary>Maximum number of queued requests allowed.</summary>
+    public int QueueLimit { get; set; } = 2;
 
     /// <summary>Message returned when the limit is exceeded. Supports the {retryAfterMinutes} placeholder.</summary>
     public string? ErrorMessage { get; set; }
