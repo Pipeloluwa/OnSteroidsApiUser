@@ -193,6 +193,7 @@ public static class ProgramExtension
         services.AddScoped<IRequestHistoryService, RequestHistoryService>();
         services.AddScoped<IScriptService, ScriptService>();
         services.AddScoped<IWorkspaceStateService, WorkspaceStateService>();
+        services.AddScoped<IImportService, ImportService>();
     }
 
     public static void AddProjectValidators(this IServiceCollection services)
