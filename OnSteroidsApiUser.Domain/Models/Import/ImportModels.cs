@@ -11,6 +11,7 @@ public class ImportCapsuleItemRequest
     public string? AutoAuthEnabled { get; set; } = "off";
     public string? AutoAuthEndpointId { get; set; }
     public List<SaveRequestStateRequest> Requests { get; set; } = [];
+    public List<SyncVariableItem>? Variables { get; set; }
 }
 
 public class ImportPayloadRequest
@@ -27,6 +28,7 @@ public class ImportedCapsuleResultDto
 {
     public CapsuleDto Capsule { get; set; } = default!;
     public List<RequestDto> Requests { get; set; } = [];
+    public List<VariableDto> Variables { get; set; } = [];
 }
 
 public class ImportResultDto

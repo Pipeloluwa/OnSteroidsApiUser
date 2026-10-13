@@ -103,19 +103,30 @@ public class ImportService(
             }
 
             // Sync variables for this capsule if provided
-            if (payload.Variables != null && payload.Variables.Count > 0)
+            var varsToSync = (capItem.Variables != null && capItem.Variables.Count > 0)
+                ? capItem.Variables
+                : payload.Variables;
+
+            var importedVars = new List<VariableDto>();
+            if (varsToSync != null && varsToSync.Count > 0)
             {
-                await _variableService.SyncVariablesAsync(new SyncVariablesRequest
+                var (varStatus, varResponse) = await _variableService.SyncVariablesAsync(new SyncVariablesRequest
                 {
                     CapsuleId = createdCapDto.Id,
-                    Variables = payload.Variables
+                    Variables = varsToSync
                 }, userId);
+
+                if (varStatus == 200 && varResponse is BaseSuccessResponse<IEnumerable<VariableDto>> varSuccess && varSuccess.data != null)
+                {
+                    importedVars.AddRange(varSuccess.data);
+                }
             }
 
             importedCapsules.Add(new ImportedCapsuleResultDto
             {
                 Capsule = createdCapDto,
-                Requests = importedRequests
+                Requests = importedRequests,
+                Variables = importedVars
             });
         }
 
