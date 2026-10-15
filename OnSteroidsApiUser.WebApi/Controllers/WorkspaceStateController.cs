@@ -24,6 +24,14 @@ public class WorkspaceStateController(
         return StatusCode(status, response);
     }
 
+    [HttpPatch("active-tab")]
+    [HttpPut("active-tab")]
+    public async Task<IActionResult> UpdateActiveTab([FromBody] UpdateActiveTabRequest request)
+    {
+        var (status, response) = await _service.UpdateActiveTabAsync(request, _authDetails.UserId);
+        return StatusCode(status, response);
+    }
+
     [HttpGet]
     public async Task<IActionResult> Get()
     {

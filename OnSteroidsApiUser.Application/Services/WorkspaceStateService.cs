@@ -35,6 +35,13 @@ public class WorkspaceStateService(
         return BaseResponseHelpers.ReturnSuccess("Workspace state saved", result);
     }
 
+    public async Task<(int StatusCode, object Response)> UpdateActiveTabAsync(UpdateActiveTabRequest request, Guid userId)
+    {
+        var result = await _repo.UpdateActiveTabAsync(userId, request);
+        _logger.LogInformation("Updated active tab for user {UserId}", userId);
+        return BaseResponseHelpers.ReturnSuccess("Active tab updated", result);
+    }
+
     public async Task<(int StatusCode, object Response)> GetByUserAsync(Guid userId)
     {
         var state = await _repo.GetByUserAsync(userId);

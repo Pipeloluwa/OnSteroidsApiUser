@@ -28,3 +28,12 @@ public class UpsertWorkspaceStateRequest
     public string? AutoAuthEndpointId { get; set; }
     public bool AutoSaveEnabled { get; set; }
 }
+
+public class UpdateActiveTabRequest
+{
+    public string? ActiveCapsuleId { get; set; }
+    public string? ActiveCapsuleName { get; set; }
+    public string? ActiveTabId { get; set; }
+    public string? OpenTabIds { get; set; }
+}
+

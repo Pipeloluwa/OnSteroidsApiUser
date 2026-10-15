@@ -1,4 +1,5 @@
 using Dapper;
+using System.Data;
 using Microsoft.Extensions.Logging;
 using OnSteroidsApiUser.Application.Abstractions.Interfaces.IDapper;
 using OnSteroidsApiUser.Application.Abstractions.Interfaces.IRepositories;
@@ -29,6 +30,41 @@ public class WorkspaceStateRepository(
         p.Add("@AutoAuthEndpointId", state.AutoAuthEndpointId);
         p.Add("@AutoSaveEnabled", state.AutoSaveEnabled);
         return await _dapper.Query<WorkspaceStateDto>(p, "dbo.spUserWorkspaceState_Upsert");
+    }
+
+    public async Task<WorkspaceStateDto?> UpdateActiveTabAsync(Guid userId, UpdateActiveTabRequest request)
+    {
+        _logger.LogInformation("Updating active tab for user {UserId}", userId);
+        var p = new DynamicParameters();
+        p.Add("@UserId", userId);
+        p.Add("@ActiveCapsuleId", request.ActiveCapsuleId);
+        p.Add("@ActiveCapsuleName", request.ActiveCapsuleName);
+        p.Add("@ActiveTabId", request.ActiveTabId);
+        p.Add("@OpenTabIds", request.OpenTabIds);
+
+        const string sql = @"
+        IF EXISTS (SELECT 1 FROM [dbo].[UserWorkspaceState] WHERE [UserId] = @UserId)
+        BEGIN
+            UPDATE [dbo].[UserWorkspaceState]
+            SET
+                [ActiveCapsuleId]   = COALESCE(@ActiveCapsuleId, [ActiveCapsuleId]),
+                [ActiveCapsuleName] = COALESCE(@ActiveCapsuleName, [ActiveCapsuleName]),
+                [ActiveTabId]       = @ActiveTabId,
+                [OpenTabIds]        = COALESCE(@OpenTabIds, [OpenTabIds]),
+                [UpdatedAt]         = GETUTCDATE()
+            WHERE [UserId] = @UserId;
+        END
+        ELSE
+        BEGIN
+            INSERT INTO [dbo].[UserWorkspaceState]
+                ([UserId], [ActiveCapsuleId], [ActiveCapsuleName], [ActiveTabId], [OpenTabIds], [UpdatedAt])
+            VALUES
+                (@UserId, @ActiveCapsuleId, @ActiveCapsuleName, @ActiveTabId, @OpenTabIds, GETUTCDATE());
+        END
+
+        SELECT * FROM [dbo].[UserWorkspaceState] WHERE [UserId] = @UserId;";
+
+        return await _dapper.Query<WorkspaceStateDto>(p, sql, CommandType.Text);
     }
 
     public async Task<WorkspaceStateDto?> GetByUserAsync(Guid userId)
