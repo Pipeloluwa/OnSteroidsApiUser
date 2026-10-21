@@ -91,9 +91,9 @@ public class AuthService(
             return BaseResponseHelpers.ReturnServerErrorData("Failed to register user", null);
         }
 
-        // Smart email-first check: if user already has a password and did not explicitly request OTP,
-        // prompt for password immediately without sending an OTP email.
-        if (user.HasPassword && !request.ForceOtp)
+        // Strict password sign-in: if user already has a password, prompt for password sign-in.
+        // Password resets use ForgotPasswordAsync instead of SendOtpAsync.
+        if (user.HasPassword)
         {
             _logger.LogInformation("[{RequestId}] Returning user {Email} has password; prompting password sign-in", _authDetails.RequestId, email);
             return BaseResponseHelpers.ReturnSuccess<object>("Enter your password to sign in.", new
@@ -204,46 +204,23 @@ public class AuthService(
                 return BaseResponseHelpers.ReturnValidationSemanticErrorData("Invalid or expired OTP code.", null);
             }
 
-            // If the user has not set a password yet (new account creation) or requested a password reset,
-            // prompt them to create/set a password before issuing full session tokens.
-            if (!user.HasPassword || request.IsPasswordReset)
-            {
-                var pendingSetupResponse = new AuthLoginResponse
-                {
-                    User = user,
-                    Token = string.Empty,
-                    RefreshToken = string.Empty,
-                    ExpiresAt = DateTime.UtcNow,
-                    RequiresPasswordSetup = true
-                };
-
-                var promptMsg = user.HasPassword
-                    ? "Code verified! Enter your new password below."
-                    : "Email verified! Create a password to finish setting up your account.";
-
-                _logger.LogInformation("[{RequestId}] OTP verified for {Email}; awaiting password setup", _authDetails.RequestId, email);
-                return BaseResponseHelpers.ReturnSuccess(promptMsg, pendingSetupResponse);
-            }
-
-            var (token, expiresAt) = _jwtTokenHelper.GenerateToken(user.Id, user.Email);
-
-            // Generate refresh token
-            var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-            var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
-            await _userAuthRepo.UpdateRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
-
-            var authResponse = new AuthLoginResponse
+            // OTP verification strictly unlocks password creation (for new users) or password reset.
+            // Sign-in is strictly performed via password.
+            var pendingSetupResponse = new AuthLoginResponse
             {
                 User = user,
-                Token = token,
-                RefreshToken = refreshToken,
-                ExpiresAt = expiresAt,
-                RequiresPasswordSetup = false
+                Token = string.Empty,
+                RefreshToken = string.Empty,
+                ExpiresAt = DateTime.UtcNow,
+                RequiresPasswordSetup = true
             };
 
-            var safeUser = new { user.Id, user.Email, user.IsAuthenticated, user.HasPassword, user.CreatedAt };
-            _logger.LogInformation("[{RequestId}] User {Email} successfully authenticated via OTP: {User}", _authDetails.RequestId, email, JsonSerializer.Serialize(safeUser));
-            return BaseResponseHelpers.ReturnSuccess("Authentication successful", authResponse);
+            var promptMsg = user.HasPassword
+                ? "Code verified! Enter your new password below."
+                : "Email verified! Create a password to finish setting up your account.";
+
+            _logger.LogInformation("[{RequestId}] OTP verified for {Email}; awaiting password setup", _authDetails.RequestId, email);
+            return BaseResponseHelpers.ReturnSuccess(promptMsg, pendingSetupResponse);
         }
         catch (Exception ex)
         {
