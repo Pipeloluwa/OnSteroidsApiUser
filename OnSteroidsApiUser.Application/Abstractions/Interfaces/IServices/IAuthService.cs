@@ -6,6 +6,10 @@ public interface IAuthService
 {
     Task<(int StatusCode, object Response)> SendOtpAsync(SendOtpRequest request);
     Task<(int StatusCode, object Response)> VerifyOtpAsync(VerifyOtpRequest request);
+    Task<(int StatusCode, object Response)> SetPasswordAsync(SetPasswordRequest request);
+    Task<(int StatusCode, object Response)> LoginWithPasswordAsync(PasswordLoginRequest request);
+    Task<(int StatusCode, object Response)> ForgotPasswordAsync(ForgotPasswordRequest request);
+    Task<(int StatusCode, object Response)> ChangePasswordAsync(Guid userId, ChangePasswordRequest request);
     Task<(int StatusCode, object Response)> GetCurrentUserAsync(Guid userId);
     Task<(int StatusCode, object Response)> LogoutAsync(Guid userId);
     Task<(int StatusCode, object Response)> RefreshAsync(RefreshRequest request);

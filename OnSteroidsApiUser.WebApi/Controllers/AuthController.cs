@@ -31,6 +31,18 @@ public class AuthController(
         return StatusCode(status, response);
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting(ProgramExtension.OtpGeneratePolicy)]
+    [ProducesResponseType(typeof(BaseSuccessResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        var (status, response) = await _authService.ForgotPasswordAsync(request);
+        return StatusCode(status, response);
+    }
+
     [HttpPost("verify-otp")]
     [AllowAnonymous]
     [EnableRateLimiting(ProgramExtension.OtpValidatePolicy)]
@@ -41,6 +53,44 @@ public class AuthController(
     public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
     {
         var (status, response) = await _authService.VerifyOtpAsync(request);
+        return StatusCode(status, response);
+    }
+
+    [HttpPost("set-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting(ProgramExtension.OtpValidatePolicy)]
+    [ProducesResponseType(typeof(BaseSuccessResponse<AuthLoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> SetPassword([FromBody] SetPasswordRequest request)
+    {
+        var (status, response) = await _authService.SetPasswordAsync(request);
+        return StatusCode(status, response);
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(typeof(BaseSuccessResponse<UserAuthDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var (status, response) = await _authService.ChangePasswordAsync(_authDetails.UserId, request);
+        return StatusCode(status, response);
+    }
+
+    [HttpPost("login-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting(ProgramExtension.OtpValidatePolicy)]
+    [ProducesResponseType(typeof(BaseSuccessResponse<AuthLoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> LoginPassword([FromBody] PasswordLoginRequest request)
+    {
+        var (status, response) = await _authService.LoginWithPasswordAsync(request);
         return StatusCode(status, response);
     }
 
@@ -62,6 +112,7 @@ public class AuthController(
         var (status, response) = await _authService.LogoutAsync(_authDetails.UserId);
         return StatusCode(status, response);
     }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(BaseSuccessResponse<AuthLoginResponse>), StatusCodes.Status200OK)]

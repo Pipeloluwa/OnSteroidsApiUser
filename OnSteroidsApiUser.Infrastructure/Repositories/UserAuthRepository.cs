@@ -41,6 +41,31 @@ public class UserAuthRepository(
         return await _dapper.Query<UserAuthDto>(parameters, "dbo.spUserAuth_VerifyOtp");
     }
 
+    public async Task<UserAuthDto?> SetPasswordAsync(string email, string passwordHash)
+    {
+        _logger.LogInformation("Setting password for {Email}", email);
+        var parameters = new DynamicParameters();
+        parameters.Add("@Email", email);
+        parameters.Add("@PasswordHash", passwordHash);
+        return await _dapper.Query<UserAuthDto>(parameters, "dbo.spUserAuth_SetPassword");
+    }
+
+    public async Task<UserAuthDto?> ChangePasswordAsync(Guid id, string passwordHash)
+    {
+        _logger.LogInformation("Changing password for user {UserId}", id);
+        var parameters = new DynamicParameters();
+        parameters.Add("@Id", id);
+        parameters.Add("@PasswordHash", passwordHash);
+        return await _dapper.Query<UserAuthDto>(parameters, "dbo.spUserAuth_ChangePassword");
+    }
+
+    public async Task<UserAuthDto?> SetAuthenticatedAsync(Guid id)
+    {
+        var parameters = new DynamicParameters();
+        parameters.Add("@Id", id);
+        return await _dapper.Query<UserAuthDto>(parameters, "dbo.spUserAuth_SetAuthenticated");
+    }
+
     public async Task<UserAuthDto?> GetByEmailAsync(string email)
     {
         var parameters = new DynamicParameters();
@@ -77,3 +102,4 @@ public class UserAuthRepository(
         return await _dapper.Query<UserAuthDto>(parameters, "dbo.spUserAuth_GetByRefreshToken");
     }
 }
+
