@@ -19,6 +19,18 @@ public class AuthController(
     private readonly IAuthService _authService = authService;
     private readonly IAuthDetailsHelper _authDetails = authDetails;
 
+    [HttpPost("check-email")]
+    [AllowAnonymous]
+    [EnableRateLimiting(ProgramExtension.OtpValidatePolicy)]
+    [ProducesResponseType(typeof(BaseSuccessResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BaseErrorResponse), StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> CheckEmail([FromBody] SendOtpRequest request)
+    {
+        var (status, response) = await _authService.CheckEmailAsync(request);
+        return StatusCode(status, response);
+    }
+
     [HttpPost("send-otp")]
     [AllowAnonymous]
     [EnableRateLimiting(ProgramExtension.OtpGeneratePolicy)]

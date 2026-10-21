@@ -282,7 +282,9 @@ public static class ProgramExtension
 
                 var template = policy?.ErrorMessage
                     ?? "Too many requests. Please try again after {retryAfterMinutes} minute(s).";
-                var message = template.Replace("{retryAfterMinutes}", retryAfterMinutes.ToString());
+                var message = template
+                    .Replace("{retryAfterMinutes}", retryAfterMinutes.ToString())
+                    .Replace("{retryAfterSeconds}", retryAfterSeconds.ToString());
 
                 http.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 http.Response.Headers.RetryAfter = retryAfterSeconds.ToString();

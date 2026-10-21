@@ -44,6 +44,35 @@ public class AuthService(
     private const int SaltSize = 16;
     private const int KeySize = 32;
 
+    private int GetOtpCooldownSeconds() =>
+        Math.Max(1, (_appSettings.OtpSettings?.RateLimit?.Generate?.WindowMinutes ?? 1) * 60);
+
+    public async Task<(int StatusCode, object Response)> CheckEmailAsync(SendOtpRequest request)
+    {
+        var validation = await _sendOtpValidator.ValidateAsync(request);
+        if (!validation.IsValid)
+        {
+            var errors = validation.Errors.Select(e => e.ErrorMessage);
+            return BaseResponseHelpers.ReturnValidationSyntaxError("Invalid request", errors);
+        }
+
+        var email = request.Email.Trim().ToLowerInvariant();
+        var user = await _userAuthRepo.RegisterAsync(email);
+        if (user == null)
+        {
+            return BaseResponseHelpers.ReturnServerErrorData("Failed to check user account", null);
+        }
+
+        return BaseResponseHelpers.ReturnSuccess<object>(
+            user.HasPassword ? "Enter your password to sign in." : "Proceed with email verification.",
+            new
+            {
+                email,
+                hasPassword = user.HasPassword,
+                otpSent = false
+            });
+    }
+
     public async Task<(int StatusCode, object Response)> SendOtpAsync(SendOtpRequest request)
     {
         var validation = await _sendOtpValidator.ValidateAsync(request);
@@ -94,13 +123,16 @@ public class AuthService(
             .Replace("{otpToken}", otp)
             .Replace("{otpMinute}", expiryMinutes.ToString());
 
+        var retryAfterSeconds = GetOtpCooldownSeconds();
+
         _logger.LogInformation("[{RequestId}] OTP dispatched successfully for {Email}", _authDetails.RequestId, email);
         return (await _emailService.SendEmailAsync(email, subject, body))
             ? BaseResponseHelpers.ReturnSuccess<object>($"Verification code sent to {email}.", new
             {
                 email,
                 hasPassword = user.HasPassword,
-                otpSent = true
+                otpSent = true,
+                retryAfterSeconds
             })
             : BaseResponseHelpers.ReturnServerErrorData("Sorry something went wrong, could not complete operation, please try again.", null);
     }
@@ -137,6 +169,8 @@ public class AuthService(
             .Replace("{otpToken}", otp)
             .Replace("{otpMinute}", expiryMinutes.ToString());
 
+        var retryAfterSeconds = GetOtpCooldownSeconds();
+
         _logger.LogInformation("[{RequestId}] Password reset OTP dispatched for {Email}", _authDetails.RequestId, email);
         return (await _emailService.SendEmailAsync(email, subject, body))
             ? BaseResponseHelpers.ReturnSuccess<object>($"Password reset code sent to {email}.", new
@@ -144,7 +178,8 @@ public class AuthService(
                 email,
                 hasPassword = user.HasPassword,
                 otpSent = true,
-                isPasswordReset = true
+                isPasswordReset = true,
+                retryAfterSeconds
             })
             : BaseResponseHelpers.ReturnServerErrorData("Could not send password reset code. Please try again.", null);
     }

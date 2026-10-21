@@ -39,9 +39,9 @@ public class OtpRateLimitSettings
 {
     public RateLimitPolicySettings Generate { get; set; } = new()
     {
-        PermitLimit = 7,
-        WindowMinutes = 15,
-        ErrorMessage = "Too many OTP requests. Please try again after {retryAfterMinutes} minute(s)."
+        PermitLimit = 1,
+        WindowMinutes = 1,
+        ErrorMessage = "Too many OTP requests. Please wait {retryAfterSeconds}s before requesting a new code."
     };
 
     public RateLimitPolicySettings Validate { get; set; } = new()
