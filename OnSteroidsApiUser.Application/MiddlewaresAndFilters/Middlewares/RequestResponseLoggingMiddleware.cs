@@ -23,7 +23,8 @@ public class RequestResponseLoggingMiddleware(
     {
         var requestBody = await GetRequestBodyAsync(context.Request);
         var method = context.Request.Method;
-        var path = context.Request.Path.Value;
+        var path = (context.Request.Path.Value ?? string.Empty) + (context.Request.QueryString.Value ?? string.Empty);
+        if (path.Length > 255) path = path[..255];
         var traceId = context.TraceIdentifier;
 
         var originalBodyStream = context.Response.Body;
