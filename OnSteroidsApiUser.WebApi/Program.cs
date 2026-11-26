@@ -1,4 +1,7 @@
+using Microsoft.Extensions.Options;
 using OnSteroidsApiUser.Domain.Constants.Enums;
+using OnSteroidsApiUser.Domain.Models.AppSettingsModels;
+using OnSteroidsApiUser.Infrastructure.Dapper;
 using OnSteroidsApiUser.WebApi.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +21,10 @@ builder.Services.AddProjectValidators();
 builder.Services.AddProjectServices();
 
 var app = builder.Build();
+
+await SqlSchemaInitializer.EnsureSchemaUpdatedAsync(
+    app.Services.GetRequiredService<IOptions<AppSettings>>(),
+    app.Logger);
 
 // ── Middleware Pipeline ────────────────────────────────────────
 if (app.Environment.IsDevelopment())

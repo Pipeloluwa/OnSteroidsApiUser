@@ -33,6 +33,8 @@ CREATE TABLE [dbo].[Capsule](
 	[UpdatedAt] [datetime2](7) NOT NULL,
 	[AutoAuthEnabled] [nvarchar](50) NULL,
 	[AutoAuthEndpointId] [nvarchar](100) NULL,
+	[LockMode] [nvarchar](50) NULL,
+	[BrdSectionsJson] [nvarchar](max) NULL,
  CONSTRAINT [PK_Capsule] PRIMARY KEY CLUSTERED 
 (
 	[Id] ASC
@@ -78,6 +80,22 @@ CREATE TABLE [dbo].[Request](
 	[TestScriptEnabled] [bit] NOT NULL,
 	[PostTriggerTabId] [nvarchar](100) NULL,
 	[AutoAuthEnabled] [bit] NOT NULL,
+	[Description] [nvarchar](max) NULL,
+	[DocNotes] [nvarchar](max) NULL,
+	[TestRailPreconditions] [nvarchar](max) NULL,
+	[TestRailSteps] [nvarchar](max) NULL,
+	[TestRailExpected] [nvarchar](max) NULL,
+	[CustomDocBlocksJson] [nvarchar](max) NULL,
+	[RawBodyText] [nvarchar](max) NULL,
+	[UrlEncodedDataJson] [nvarchar](max) NULL,
+	[GraphqlQuery] [nvarchar](max) NULL,
+	[GraphqlVariables] [nvarchar](max) NULL,
+	[PreRequestLanguage] [nvarchar](20) NULL,
+	[PostResponseLanguage] [nvarchar](20) NULL,
+	[TestScriptLanguage] [nvarchar](20) NULL,
+	[EncryptionChannelName] [nvarchar](255) NULL,
+	[EncryptionScriptLanguage] [nvarchar](20) NULL,
+	[TriggerConfigJson] [nvarchar](max) NULL,
  CONSTRAINT [PK_Request] PRIMARY KEY CLUSTERED 
 (
 	[Id] ASC

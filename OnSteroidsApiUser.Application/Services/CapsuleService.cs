@@ -35,7 +35,14 @@ public class CapsuleService(
             return BaseResponseHelpers.ReturnValidationSyntaxError("Invalid request", errors);
         }
 
-        var capsule = await _capsuleRepo.CreateAsync(userId, request.Name.Trim(), request.Id, request.AutoAuthEnabled, request.AutoAuthEndpointId);
+        var capsule = await _capsuleRepo.CreateAsync(
+            userId,
+            request.Name.Trim(),
+            request.Id,
+            request.AutoAuthEnabled,
+            request.AutoAuthEndpointId,
+            request.LockMode,
+            request.BrdSectionsJson);
         _logger.LogInformation("[{RequestId}] User {UserId} created capsule: {Capsule}", _authDetails.RequestId, userId, JsonSerializer.Serialize(capsule));
         return BaseResponseHelpers.ReturnSuccess("Capsule created successfully", capsule);
     }
@@ -76,7 +83,14 @@ public class CapsuleService(
             return BaseResponseHelpers.ReturnValidationSyntaxError("Invalid request", errors);
         }
 
-        var capsule = await _capsuleRepo.UpdateAsync(id, userId, request.Name.Trim(), request.AutoAuthEnabled, request.AutoAuthEndpointId);
+        var capsule = await _capsuleRepo.UpdateAsync(
+            id,
+            userId,
+            request.Name.Trim(),
+            request.AutoAuthEnabled,
+            request.AutoAuthEndpointId,
+            request.LockMode,
+            request.BrdSectionsJson);
         if (capsule == null)
         {
             return BaseResponseHelpers.ReturnNotFoundError("Capsule not found", null);
@@ -119,6 +133,7 @@ public class CapsuleService(
             req.Params = (await _requestRepo.GetParamsByRequestAsync(req.Id)).ToList();
             req.Headers = (await _requestRepo.GetHeadersByRequestAsync(req.Id)).ToList();
             req.FormData = (await _requestRepo.GetFormDataByRequestAsync(req.Id)).ToList();
+            RequestService.HydrateJsonFields(req);
         }
 
         var token = Guid.NewGuid().ToString("N")[..12];
@@ -127,6 +142,8 @@ public class CapsuleService(
             Id = capsule.Id,
             Name = capsule.Name,
             ShareToken = token,
+            LockMode = capsule.LockMode ?? "unlocked",
+            BrdSectionsJson = capsule.BrdSectionsJson,
             CreatedAt = capsule.CreatedAt,
             Requests = requests
         };

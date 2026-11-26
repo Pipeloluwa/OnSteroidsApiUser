@@ -14,14 +14,19 @@ public class RequestRepository(
     private readonly IDapperConnection _dapper = dapperConnection;
     private readonly ILogger<RequestRepository> _logger = logger;
 
-    public async Task<RequestDto?> CreateAsync(RequestDto req)
+    private static DynamicParameters BuildRequestParameters(RequestDto req, bool nullableId)
     {
-        _logger.LogInformation("Creating request {Name} in capsule {CapsuleId}", req.Name, req.CapsuleId);
         var p = new DynamicParameters();
-        p.Add("@Id", req.Id != Guid.Empty ? req.Id : (Guid?)null);
+        p.Add("@Id", nullableId ? (req.Id != Guid.Empty ? req.Id : (Guid?)null) : req.Id);
         p.Add("@CapsuleId", req.CapsuleId);
         p.Add("@UserId", req.UserId);
         p.Add("@Name", req.Name);
+        p.Add("@Description", req.Description);
+        p.Add("@DocNotes", req.DocNotes);
+        p.Add("@TestRailPreconditions", req.TestRailPreconditions);
+        p.Add("@TestRailSteps", req.TestRailSteps);
+        p.Add("@TestRailExpected", req.TestRailExpected);
+        p.Add("@CustomDocBlocksJson", req.CustomDocBlocksJson);
         p.Add("@Url", req.Url);
         p.Add("@Method", req.Method);
         p.Add("@PayloadType", req.PayloadType);
@@ -30,65 +35,49 @@ public class RequestRepository(
         p.Add("@RawBody", req.RawBody);
         p.Add("@RawBodyJson", req.RawBodyJson);
         p.Add("@RawBodyXml", req.RawBodyXml);
+        p.Add("@RawBodyText", req.RawBodyText);
+        p.Add("@UrlEncodedDataJson", req.UrlEncodedDataJson);
+        p.Add("@GraphqlQuery", req.GraphqlQuery);
+        p.Add("@GraphqlVariables", req.GraphqlVariables);
         p.Add("@AuthType", req.AuthType);
         p.Add("@AuthToken", req.AuthToken);
         p.Add("@PreRequestScript", req.PreRequestScript);
         p.Add("@PostResponseScript", req.PostResponseScript);
         p.Add("@TestScript", req.TestScript);
         p.Add("@TestScriptEnabled", req.TestScriptEnabled);
+        p.Add("@PreRequestLanguage", req.PreRequestLanguage);
+        p.Add("@PostResponseLanguage", req.PostResponseLanguage);
+        p.Add("@TestScriptLanguage", req.TestScriptLanguage);
         p.Add("@EncryptionAlgorithm", req.EncryptionAlgorithm);
         p.Add("@EncryptionKey", req.EncryptionKey);
         p.Add("@AutoEncryptBody", req.AutoEncryptBody);
         p.Add("@AutoEncryptHeaders", req.AutoEncryptHeaders);
+        p.Add("@EncryptionChannelName", req.EncryptionChannelName);
         p.Add("@EncryptedHeaders", req.EncryptedHeaders);
         p.Add("@EncryptedBodyPaths", req.EncryptedBodyPaths);
         p.Add("@EncryptionScript", req.EncryptionScript);
+        p.Add("@EncryptionScriptLanguage", req.EncryptionScriptLanguage);
         p.Add("@FollowRedirects", req.FollowRedirects);
         p.Add("@VerifySsl", req.VerifySsl);
         p.Add("@EnableCookies", req.EnableCookies);
         p.Add("@BypassCors", req.BypassCors);
         p.Add("@PostTriggerTabId", req.PostTriggerTabId);
+        p.Add("@TriggerConfigJson", req.TriggerConfigJson);
         p.Add("@AutoAuthEnabled", req.AutoAuthEnabled);
+        return p;
+    }
 
+    public async Task<RequestDto?> CreateAsync(RequestDto req)
+    {
+        _logger.LogInformation("Creating request {Name} in capsule {CapsuleId}", req.Name, req.CapsuleId);
+        var p = BuildRequestParameters(req, nullableId: true);
         return await _dapper.Query<RequestDto>(p, "dbo.spRequest_Create");
     }
 
     public async Task<RequestDto?> UpdateAsync(RequestDto req)
     {
         _logger.LogInformation("Updating request {Id} for user {UserId}", req.Id, req.UserId);
-        var p = new DynamicParameters();
-        p.Add("@Id", req.Id);
-        p.Add("@CapsuleId", req.CapsuleId);
-        p.Add("@UserId", req.UserId);
-        p.Add("@Name", req.Name);
-        p.Add("@Url", req.Url);
-        p.Add("@Method", req.Method);
-        p.Add("@PayloadType", req.PayloadType);
-        p.Add("@BodyType", req.BodyType);
-        p.Add("@RawType", req.RawType);
-        p.Add("@RawBody", req.RawBody);
-        p.Add("@RawBodyJson", req.RawBodyJson);
-        p.Add("@RawBodyXml", req.RawBodyXml);
-        p.Add("@AuthType", req.AuthType);
-        p.Add("@AuthToken", req.AuthToken);
-        p.Add("@PreRequestScript", req.PreRequestScript);
-        p.Add("@PostResponseScript", req.PostResponseScript);
-        p.Add("@TestScript", req.TestScript);
-        p.Add("@TestScriptEnabled", req.TestScriptEnabled);
-        p.Add("@EncryptionAlgorithm", req.EncryptionAlgorithm);
-        p.Add("@EncryptionKey", req.EncryptionKey);
-        p.Add("@AutoEncryptBody", req.AutoEncryptBody);
-        p.Add("@AutoEncryptHeaders", req.AutoEncryptHeaders);
-        p.Add("@EncryptedHeaders", req.EncryptedHeaders);
-        p.Add("@EncryptedBodyPaths", req.EncryptedBodyPaths);
-        p.Add("@EncryptionScript", req.EncryptionScript);
-        p.Add("@FollowRedirects", req.FollowRedirects);
-        p.Add("@VerifySsl", req.VerifySsl);
-        p.Add("@EnableCookies", req.EnableCookies);
-        p.Add("@BypassCors", req.BypassCors);
-        p.Add("@PostTriggerTabId", req.PostTriggerTabId);
-        p.Add("@AutoAuthEnabled", req.AutoAuthEnabled);
-
+        var p = BuildRequestParameters(req, nullableId: false);
         return await _dapper.Query<RequestDto>(p, "dbo.spRequest_Update");
     }
 

@@ -65,7 +65,9 @@ public class ImportService(
                 Id = capGuid,
                 Name = string.IsNullOrWhiteSpace(capItem.Name) ? "Imported Capsule" : capItem.Name.Trim(),
                 AutoAuthEnabled = capItem.AutoAuthEnabled ?? "off",
-                AutoAuthEndpointId = capItem.AutoAuthEndpointId
+                AutoAuthEndpointId = capItem.AutoAuthEndpointId,
+                LockMode = capItem.LockMode ?? payload.LockMode ?? "unlocked",
+                BrdSectionsJson = capItem.BrdSectionsJson ?? payload.BrdSectionsJson
             };
 
             // Call already created CapsuleService

@@ -7,6 +7,8 @@ public class CapsuleDto
     public string Name { get; set; } = string.Empty;
     public string? AutoAuthEnabled { get; set; } = "off";
     public string? AutoAuthEndpointId { get; set; }
+    public string? LockMode { get; set; } = "unlocked";
+    public string? BrdSectionsJson { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -17,6 +19,8 @@ public class CreateCapsuleRequest
     public string Name { get; set; } = string.Empty;
     public string? AutoAuthEnabled { get; set; }
     public string? AutoAuthEndpointId { get; set; }
+    public string? LockMode { get; set; } = "unlocked";
+    public string? BrdSectionsJson { get; set; }
 }
 
 public class UpdateCapsuleRequest
@@ -24,6 +28,8 @@ public class UpdateCapsuleRequest
     public string Name { get; set; } = string.Empty;
     public string? AutoAuthEnabled { get; set; }
     public string? AutoAuthEndpointId { get; set; }
+    public string? LockMode { get; set; }
+    public string? BrdSectionsJson { get; set; }
 }
 
 public class SharedCapsuleDto
@@ -31,6 +37,8 @@ public class SharedCapsuleDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string ShareToken { get; set; } = string.Empty;
+    public string? LockMode { get; set; } = "unlocked";
+    public string? BrdSectionsJson { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<Request.RequestDto> Requests { get; set; } = [];
 }

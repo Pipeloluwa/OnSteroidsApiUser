@@ -10,6 +10,8 @@ public class ImportCapsuleItemRequest
     public string Name { get; set; } = "Imported Capsule";
     public string? AutoAuthEnabled { get; set; } = "off";
     public string? AutoAuthEndpointId { get; set; }
+    public string? LockMode { get; set; } = "unlocked";
+    public string? BrdSectionsJson { get; set; }
     public List<SaveRequestStateRequest> Requests { get; set; } = [];
     public List<SyncVariableItem>? Variables { get; set; }
 }
@@ -20,6 +22,8 @@ public class ImportPayloadRequest
     public string? Name { get; set; }
     public string? AutoAuthEnabled { get; set; }
     public string? AutoAuthEndpointId { get; set; }
+    public string? LockMode { get; set; }
+    public string? BrdSectionsJson { get; set; }
     public List<SaveRequestStateRequest>? Requests { get; set; }
     public List<SyncVariableItem>? Variables { get; set; }
 }

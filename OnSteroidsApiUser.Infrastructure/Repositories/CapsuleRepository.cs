@@ -14,7 +14,7 @@ public class CapsuleRepository(
     private readonly IDapperConnection _dapper = dapperConnection;
     private readonly ILogger<CapsuleRepository> _logger = logger;
 
-    public async Task<CapsuleDto?> CreateAsync(Guid userId, string name, Guid? id = null, string? autoAuthEnabled = null, string? autoAuthEndpointId = null)
+    public async Task<CapsuleDto?> CreateAsync(Guid userId, string name, Guid? id = null, string? autoAuthEnabled = null, string? autoAuthEndpointId = null, string? lockMode = null, string? brdSectionsJson = null)
     {
         _logger.LogInformation("Creating capsule {Name} for user {UserId}", name, userId);
         var parameters = new DynamicParameters();
@@ -23,6 +23,8 @@ public class CapsuleRepository(
         parameters.Add("@Id", id);
         parameters.Add("@AutoAuthEnabled", autoAuthEnabled ?? "off");
         parameters.Add("@AutoAuthEndpointId", autoAuthEndpointId);
+        parameters.Add("@LockMode", string.IsNullOrWhiteSpace(lockMode) ? "unlocked" : lockMode);
+        parameters.Add("@BrdSectionsJson", brdSectionsJson);
         return await _dapper.Query<CapsuleDto>(parameters, "dbo.spCapsule_Create");
     }
 
@@ -41,7 +43,7 @@ public class CapsuleRepository(
         return await _dapper.Query<CapsuleDto>(parameters, "dbo.spCapsule_GetById");
     }
 
-    public async Task<CapsuleDto?> UpdateAsync(Guid id, Guid userId, string name, string? autoAuthEnabled = null, string? autoAuthEndpointId = null)
+    public async Task<CapsuleDto?> UpdateAsync(Guid id, Guid userId, string name, string? autoAuthEnabled = null, string? autoAuthEndpointId = null, string? lockMode = null, string? brdSectionsJson = null)
     {
         _logger.LogInformation("Updating capsule {Id} for user {UserId}", id, userId);
         var parameters = new DynamicParameters();
@@ -50,6 +52,8 @@ public class CapsuleRepository(
         parameters.Add("@Name", name);
         parameters.Add("@AutoAuthEnabled", autoAuthEnabled);
         parameters.Add("@AutoAuthEndpointId", autoAuthEndpointId);
+        parameters.Add("@LockMode", lockMode);
+        parameters.Add("@BrdSectionsJson", brdSectionsJson);
         return await _dapper.Query<CapsuleDto>(parameters, "dbo.spCapsule_Update");
     }
 

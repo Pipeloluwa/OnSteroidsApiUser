@@ -34,15 +34,17 @@ CREATE   PROCEDURE [dbo].[spCapsule_Create]
     @Name               NVARCHAR(100),
     @Id                 UNIQUEIDENTIFIER = NULL,
     @AutoAuthEnabled    NVARCHAR(50) = 'off',
-    @AutoAuthEndpointId NVARCHAR(100) = NULL
+    @AutoAuthEndpointId NVARCHAR(100) = NULL,
+    @LockMode           NVARCHAR(50) = 'unlocked',
+    @BrdSectionsJson    NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @NewId UNIQUEIDENTIFIER = COALESCE(@Id, NEWID());
-    INSERT INTO dbo.Capsule (Id, UserId, Name, AutoAuthEnabled, AutoAuthEndpointId, CreatedAt, UpdatedAt)
-    VALUES (@NewId, @UserId, @Name, COALESCE(@AutoAuthEnabled, 'off'), @AutoAuthEndpointId, GETUTCDATE(), GETUTCDATE());
+    INSERT INTO dbo.Capsule (Id, UserId, Name, AutoAuthEnabled, AutoAuthEndpointId, LockMode, BrdSectionsJson, CreatedAt, UpdatedAt)
+    VALUES (@NewId, @UserId, @Name, COALESCE(@AutoAuthEnabled, 'off'), @AutoAuthEndpointId, COALESCE(@LockMode, 'unlocked'), @BrdSectionsJson, GETUTCDATE(), GETUTCDATE());
 
-    SELECT [Id], [UserId], [Name], [AutoAuthEnabled], [AutoAuthEndpointId], [CreatedAt], [UpdatedAt]
+    SELECT [Id], [UserId], [Name], [AutoAuthEnabled], [AutoAuthEndpointId], [LockMode], [BrdSectionsJson], [CreatedAt], [UpdatedAt]
     FROM dbo.Capsule
     WHERE Id = @NewId;
 END
@@ -100,7 +102,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT [Id], [UserId], [Name], [AutoAuthEnabled], [AutoAuthEndpointId], [CreatedAt], [UpdatedAt]
+    SELECT [Id], [UserId], [Name], [AutoAuthEnabled], [AutoAuthEndpointId], [LockMode], [BrdSectionsJson], [CreatedAt], [UpdatedAt]
     FROM [dbo].[Capsule]
     WHERE [UserId] = @UserId
     ORDER BY [CreatedAt] DESC;
@@ -118,7 +120,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT [Id], [UserId], [Name], [AutoAuthEnabled], [AutoAuthEndpointId], [CreatedAt], [UpdatedAt]
+    SELECT [Id], [UserId], [Name], [AutoAuthEnabled], [AutoAuthEndpointId], [LockMode], [BrdSectionsJson], [CreatedAt], [UpdatedAt]
     FROM [dbo].[Capsule]
     WHERE [Id] = @Id AND [UserId] = @UserId;
 END
@@ -133,7 +135,9 @@ CREATE   PROCEDURE [dbo].[spCapsule_Update]
     @UserId             UNIQUEIDENTIFIER,
     @Name               NVARCHAR(255),
     @AutoAuthEnabled    NVARCHAR(50) = NULL,
-    @AutoAuthEndpointId NVARCHAR(100) = NULL
+    @AutoAuthEndpointId NVARCHAR(100) = NULL,
+    @LockMode           NVARCHAR(50) = NULL,
+    @BrdSectionsJson    NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -142,10 +146,12 @@ BEGIN
     SET [Name]               = @Name,
         [AutoAuthEnabled]    = COALESCE(@AutoAuthEnabled, [AutoAuthEnabled]),
         [AutoAuthEndpointId] = CASE WHEN @AutoAuthEnabled = 'off' THEN NULL ELSE COALESCE(@AutoAuthEndpointId, [AutoAuthEndpointId]) END,
+        [LockMode]           = COALESCE(@LockMode, [LockMode]),
+        [BrdSectionsJson]    = COALESCE(@BrdSectionsJson, [BrdSectionsJson]),
         [UpdatedAt]          = SYSUTCDATETIME()
     WHERE [Id] = @Id AND [UserId] = @UserId;
 
-    SELECT [Id], [UserId], [Name], [AutoAuthEnabled], [AutoAuthEndpointId], [CreatedAt], [UpdatedAt]
+    SELECT [Id], [UserId], [Name], [AutoAuthEnabled], [AutoAuthEndpointId], [LockMode], [BrdSectionsJson], [CreatedAt], [UpdatedAt]
     FROM [dbo].[Capsule]
     WHERE [Id] = @Id;
 END
@@ -160,6 +166,12 @@ CREATE   PROCEDURE [dbo].[spRequest_Create]
     @CapsuleId              UNIQUEIDENTIFIER,
     @UserId                 UNIQUEIDENTIFIER,
     @Name                   NVARCHAR(255)       = N'New Request',
+    @Description            NVARCHAR(MAX)       = NULL,
+    @DocNotes               NVARCHAR(MAX)       = NULL,
+    @TestRailPreconditions  NVARCHAR(MAX)       = NULL,
+    @TestRailSteps          NVARCHAR(MAX)       = NULL,
+    @TestRailExpected       NVARCHAR(MAX)       = NULL,
+    @CustomDocBlocksJson    NVARCHAR(MAX)       = NULL,
     @Url                    NVARCHAR(2048)      = N'',
     @Method                 NVARCHAR(10)        = N'GET',
     @PayloadType            NVARCHAR(20)        = N'params',
@@ -168,24 +180,34 @@ CREATE   PROCEDURE [dbo].[spRequest_Create]
     @RawBody                NVARCHAR(MAX)       = NULL,
     @RawBodyJson            NVARCHAR(MAX)       = NULL,
     @RawBodyXml             NVARCHAR(MAX)       = NULL,
+    @RawBodyText            NVARCHAR(MAX)       = NULL,
+    @UrlEncodedDataJson     NVARCHAR(MAX)       = NULL,
+    @GraphqlQuery           NVARCHAR(MAX)       = NULL,
+    @GraphqlVariables       NVARCHAR(MAX)       = NULL,
     @AuthType               NVARCHAR(10)        = N'none',
     @AuthToken              NVARCHAR(MAX)       = NULL,
     @PreRequestScript       NVARCHAR(MAX)       = NULL,
     @PostResponseScript     NVARCHAR(MAX)       = NULL,
     @TestScript             NVARCHAR(MAX)       = NULL,
     @TestScriptEnabled      BIT                 = 0,
+    @PreRequestLanguage     NVARCHAR(20)        = N'javascript',
+    @PostResponseLanguage   NVARCHAR(20)        = N'javascript',
+    @TestScriptLanguage     NVARCHAR(20)        = N'javascript',
     @EncryptionAlgorithm    NVARCHAR(20)        = N'none',
     @EncryptionKey          NVARCHAR(MAX)       = NULL,
     @AutoEncryptBody        BIT                 = 0,
     @AutoEncryptHeaders     BIT                 = 0,
+    @EncryptionChannelName  NVARCHAR(255)       = NULL,
     @EncryptedHeaders       NVARCHAR(MAX)       = NULL,
     @EncryptedBodyPaths     NVARCHAR(MAX)       = NULL,
     @EncryptionScript       NVARCHAR(MAX)       = NULL,
+    @EncryptionScriptLanguage NVARCHAR(20)      = N'javascript',
     @FollowRedirects        BIT                 = 1,
     @VerifySsl              BIT                 = 1,
     @EnableCookies          BIT                 = 1,
     @BypassCors             BIT                 = 1,
     @PostTriggerTabId       NVARCHAR(100)       = NULL,
+    @TriggerConfigJson      NVARCHAR(MAX)       = NULL,
     @AutoAuthEnabled        BIT                 = 0
 AS
 BEGIN
@@ -199,24 +221,32 @@ BEGIN
     END
 
     INSERT INTO [dbo].[Request] (
-        [Id], [CapsuleId], [UserId], [Name], [Url], [Method],
+        [Id], [CapsuleId], [UserId], [Name],
+        [Description], [DocNotes], [TestRailPreconditions], [TestRailSteps], [TestRailExpected], [CustomDocBlocksJson],
+        [Url], [Method],
         [PayloadType], [BodyType], [RawType], [RawBody], [RawBodyJson], [RawBodyXml],
+        [RawBodyText], [UrlEncodedDataJson], [GraphqlQuery], [GraphqlVariables],
         [AuthType], [AuthToken],
         [PreRequestScript], [PostResponseScript], [TestScript], [TestScriptEnabled],
+        [PreRequestLanguage], [PostResponseLanguage], [TestScriptLanguage],
         [EncryptionAlgorithm], [EncryptionKey], [AutoEncryptBody], [AutoEncryptHeaders],
-        [EncryptedHeaders], [EncryptedBodyPaths], [EncryptionScript],
+        [EncryptionChannelName], [EncryptedHeaders], [EncryptedBodyPaths], [EncryptionScript], [EncryptionScriptLanguage],
         [FollowRedirects], [VerifySsl], [EnableCookies], [BypassCors],
-        [PostTriggerTabId], [AutoAuthEnabled]
+        [PostTriggerTabId], [TriggerConfigJson], [AutoAuthEnabled]
     )
     VALUES (
-        @NewId, @CapsuleId, @UserId, @Name, @Url, @Method,
+        @NewId, @CapsuleId, @UserId, @Name,
+        @Description, @DocNotes, @TestRailPreconditions, @TestRailSteps, @TestRailExpected, @CustomDocBlocksJson,
+        @Url, @Method,
         @PayloadType, @BodyType, @RawType, @RawBody, @RawBodyJson, @RawBodyXml,
+        @RawBodyText, @UrlEncodedDataJson, @GraphqlQuery, @GraphqlVariables,
         @AuthType, @AuthToken,
         @PreRequestScript, @PostResponseScript, @TestScript, @TestScriptEnabled,
+        COALESCE(@PreRequestLanguage, N'javascript'), COALESCE(@PostResponseLanguage, N'javascript'), COALESCE(@TestScriptLanguage, N'javascript'),
         @EncryptionAlgorithm, @EncryptionKey, @AutoEncryptBody, @AutoEncryptHeaders,
-        @EncryptedHeaders, @EncryptedBodyPaths, @EncryptionScript,
+        @EncryptionChannelName, @EncryptedHeaders, @EncryptedBodyPaths, @EncryptionScript, COALESCE(@EncryptionScriptLanguage, N'javascript'),
         @FollowRedirects, @VerifySsl, @EnableCookies, @BypassCors,
-        @PostTriggerTabId, @AutoAuthEnabled
+        @PostTriggerTabId, @TriggerConfigJson, @AutoAuthEnabled
     );
 
     SELECT * FROM [dbo].[Request] WHERE [Id] = @NewId;
@@ -262,22 +292,32 @@ BEGIN
 
     -- Clone the request
     INSERT INTO [dbo].[Request] (
-        [Id], [CapsuleId], [UserId], [Name], [Url], [Method],
+        [Id], [CapsuleId], [UserId], [Name],
+        [Description], [DocNotes], [TestRailPreconditions], [TestRailSteps], [TestRailExpected], [CustomDocBlocksJson],
+        [Url], [Method],
         [PayloadType], [BodyType], [RawType], [RawBody], [RawBodyJson], [RawBodyXml],
+        [RawBodyText], [UrlEncodedDataJson], [GraphqlQuery], [GraphqlVariables],
         [AuthType], [AuthToken],
-        [PreRequestScript], [PostResponseScript],
+        [PreRequestScript], [PostResponseScript], [TestScript], [TestScriptEnabled],
+        [PreRequestLanguage], [PostResponseLanguage], [TestScriptLanguage],
         [EncryptionAlgorithm], [EncryptionKey], [AutoEncryptBody], [AutoEncryptHeaders],
-        [EncryptedHeaders], [EncryptedBodyPaths], [EncryptionScript],
-        [FollowRedirects], [VerifySsl], [EnableCookies], [BypassCors]
+        [EncryptionChannelName], [EncryptedHeaders], [EncryptedBodyPaths], [EncryptionScript], [EncryptionScriptLanguage],
+        [FollowRedirects], [VerifySsl], [EnableCookies], [BypassCors],
+        [PostTriggerTabId], [TriggerConfigJson], [AutoAuthEnabled]
     )
     SELECT
-        @NewId, [CapsuleId], [UserId], [Name] + N' (Copy)', [Url], [Method],
+        @NewId, [CapsuleId], [UserId], [Name] + N' (Copy)',
+        [Description], [DocNotes], [TestRailPreconditions], [TestRailSteps], [TestRailExpected], [CustomDocBlocksJson],
+        [Url], [Method],
         [PayloadType], [BodyType], [RawType], [RawBody], [RawBodyJson], [RawBodyXml],
+        [RawBodyText], [UrlEncodedDataJson], [GraphqlQuery], [GraphqlVariables],
         [AuthType], [AuthToken],
-        [PreRequestScript], [PostResponseScript],
+        [PreRequestScript], [PostResponseScript], [TestScript], [TestScriptEnabled],
+        [PreRequestLanguage], [PostResponseLanguage], [TestScriptLanguage],
         [EncryptionAlgorithm], [EncryptionKey], [AutoEncryptBody], [AutoEncryptHeaders],
-        [EncryptedHeaders], [EncryptedBodyPaths], [EncryptionScript],
-        [FollowRedirects], [VerifySsl], [EnableCookies], [BypassCors]
+        [EncryptionChannelName], [EncryptedHeaders], [EncryptedBodyPaths], [EncryptionScript], [EncryptionScriptLanguage],
+        [FollowRedirects], [VerifySsl], [EnableCookies], [BypassCors],
+        [PostTriggerTabId], [TriggerConfigJson], [AutoAuthEnabled]
     FROM [dbo].[Request]
     WHERE [Id] = @SourceId AND [UserId] = @UserId;
 
@@ -354,6 +394,12 @@ CREATE   PROCEDURE [dbo].[spRequest_Update]
     @CapsuleId              UNIQUEIDENTIFIER,
     @UserId                 UNIQUEIDENTIFIER,
     @Name                   NVARCHAR(255),
+    @Description            NVARCHAR(MAX)       = NULL,
+    @DocNotes               NVARCHAR(MAX)       = NULL,
+    @TestRailPreconditions  NVARCHAR(MAX)       = NULL,
+    @TestRailSteps          NVARCHAR(MAX)       = NULL,
+    @TestRailExpected       NVARCHAR(MAX)       = NULL,
+    @CustomDocBlocksJson    NVARCHAR(MAX)       = NULL,
     @Url                    NVARCHAR(2048),
     @Method                 NVARCHAR(10),
     @PayloadType            NVARCHAR(20),
@@ -362,61 +408,87 @@ CREATE   PROCEDURE [dbo].[spRequest_Update]
     @RawBody                NVARCHAR(MAX),
     @RawBodyJson            NVARCHAR(MAX),
     @RawBodyXml             NVARCHAR(MAX),
+    @RawBodyText            NVARCHAR(MAX)       = NULL,
+    @UrlEncodedDataJson     NVARCHAR(MAX)       = NULL,
+    @GraphqlQuery           NVARCHAR(MAX)       = NULL,
+    @GraphqlVariables       NVARCHAR(MAX)       = NULL,
     @AuthType               NVARCHAR(10),
     @AuthToken              NVARCHAR(MAX),
     @PreRequestScript       NVARCHAR(MAX),
     @PostResponseScript     NVARCHAR(MAX),
     @TestScript             NVARCHAR(MAX),
     @TestScriptEnabled      BIT,
+    @PreRequestLanguage     NVARCHAR(20)        = NULL,
+    @PostResponseLanguage   NVARCHAR(20)        = NULL,
+    @TestScriptLanguage     NVARCHAR(20)        = NULL,
     @EncryptionAlgorithm    NVARCHAR(20),
     @EncryptionKey          NVARCHAR(MAX),
     @AutoEncryptBody        BIT,
     @AutoEncryptHeaders     BIT,
+    @EncryptionChannelName  NVARCHAR(255)       = NULL,
     @EncryptedHeaders       NVARCHAR(MAX),
     @EncryptedBodyPaths     NVARCHAR(MAX),
     @EncryptionScript       NVARCHAR(MAX),
+    @EncryptionScriptLanguage NVARCHAR(20)      = NULL,
     @FollowRedirects        BIT,
     @VerifySsl              BIT,
     @EnableCookies          BIT,
     @BypassCors             BIT,
-    @PostTriggerTabId       NVARCHAR(100) = NULL,
-    @AutoAuthEnabled        BIT = 0
+    @PostTriggerTabId       NVARCHAR(100)       = NULL,
+    @TriggerConfigJson      NVARCHAR(MAX)       = NULL,
+    @AutoAuthEnabled        BIT                 = 0
 AS
 BEGIN
     SET NOCOUNT ON;
 
     UPDATE [dbo].[Request]
     SET 
-        [CapsuleId]             = @CapsuleId,
-        [Name]                  = @Name,
-        [Url]                   = @Url,
-        [Method]                = @Method,
-        [PayloadType]           = @PayloadType,
-        [BodyType]              = @BodyType,
-        [RawType]               = @RawType,
-        [RawBody]               = @RawBody,
-        [RawBodyJson]           = @RawBodyJson,
-        [RawBodyXml]            = @RawBodyXml,
-        [AuthType]              = @AuthType,
-        [AuthToken]             = @AuthToken,
-        [PreRequestScript]      = @PreRequestScript,
-        [PostResponseScript]    = @PostResponseScript,
-        [TestScript]            = @TestScript,
-        [TestScriptEnabled]     = @TestScriptEnabled,
-        [EncryptionAlgorithm]   = @EncryptionAlgorithm,
-        [EncryptionKey]         = @EncryptionKey,
-        [AutoEncryptBody]       = @AutoEncryptBody,
-        [AutoEncryptHeaders]    = @AutoEncryptHeaders,
-        [EncryptedHeaders]      = @EncryptedHeaders,
-        [EncryptedBodyPaths]    = @EncryptedBodyPaths,
-        [EncryptionScript]      = @EncryptionScript,
-        [FollowRedirects]       = @FollowRedirects,
-        [VerifySsl]             = @VerifySsl,
-        [EnableCookies]         = @EnableCookies,
-        [BypassCors]            = @BypassCors,
-        [PostTriggerTabId]      = @PostTriggerTabId,
-        [AutoAuthEnabled]       = @AutoAuthEnabled,
-        [UpdatedAt]             = GETUTCDATE()
+        [CapsuleId]                 = @CapsuleId,
+        [Name]                      = @Name,
+        [Description]               = @Description,
+        [DocNotes]                  = @DocNotes,
+        [TestRailPreconditions]     = @TestRailPreconditions,
+        [TestRailSteps]             = @TestRailSteps,
+        [TestRailExpected]          = @TestRailExpected,
+        [CustomDocBlocksJson]       = @CustomDocBlocksJson,
+        [Url]                       = @Url,
+        [Method]                    = @Method,
+        [PayloadType]               = @PayloadType,
+        [BodyType]                  = @BodyType,
+        [RawType]                   = @RawType,
+        [RawBody]                   = @RawBody,
+        [RawBodyJson]               = @RawBodyJson,
+        [RawBodyXml]                = @RawBodyXml,
+        [RawBodyText]               = @RawBodyText,
+        [UrlEncodedDataJson]        = @UrlEncodedDataJson,
+        [GraphqlQuery]              = @GraphqlQuery,
+        [GraphqlVariables]          = @GraphqlVariables,
+        [AuthType]                  = @AuthType,
+        [AuthToken]                 = @AuthToken,
+        [PreRequestScript]          = @PreRequestScript,
+        [PostResponseScript]        = @PostResponseScript,
+        [TestScript]                = @TestScript,
+        [TestScriptEnabled]         = @TestScriptEnabled,
+        [PreRequestLanguage]        = COALESCE(@PreRequestLanguage, [PreRequestLanguage], N'javascript'),
+        [PostResponseLanguage]      = COALESCE(@PostResponseLanguage, [PostResponseLanguage], N'javascript'),
+        [TestScriptLanguage]        = COALESCE(@TestScriptLanguage, [TestScriptLanguage], N'javascript'),
+        [EncryptionAlgorithm]       = @EncryptionAlgorithm,
+        [EncryptionKey]             = @EncryptionKey,
+        [AutoEncryptBody]           = @AutoEncryptBody,
+        [AutoEncryptHeaders]        = @AutoEncryptHeaders,
+        [EncryptionChannelName]     = COALESCE(@EncryptionChannelName, [EncryptionChannelName]),
+        [EncryptedHeaders]          = @EncryptedHeaders,
+        [EncryptedBodyPaths]        = @EncryptedBodyPaths,
+        [EncryptionScript]          = @EncryptionScript,
+        [EncryptionScriptLanguage]  = COALESCE(@EncryptionScriptLanguage, [EncryptionScriptLanguage], N'javascript'),
+        [FollowRedirects]           = @FollowRedirects,
+        [VerifySsl]                 = @VerifySsl,
+        [EnableCookies]             = @EnableCookies,
+        [BypassCors]                = @BypassCors,
+        [PostTriggerTabId]          = @PostTriggerTabId,
+        [TriggerConfigJson]         = @TriggerConfigJson,
+        [AutoAuthEnabled]           = @AutoAuthEnabled,
+        [UpdatedAt]                 = GETUTCDATE()
     WHERE [Id] = @Id AND [UserId] = @UserId;
 
     SELECT * FROM [dbo].[Request] WHERE [Id] = @Id;
@@ -821,108 +893,54 @@ CREATE PROCEDURE [dbo].[spScript_SeedDefaultsForUser]
 AS
 BEGIN
     SET NOCOUNT ON;
-    
-    DECLARE @LongScript NVARCHAR(MAX) = 'async function encryptScript(headers, body, params, encryptedHeaders, encryptedBodyPaths) {
-    function getNestedValue(obj, path) {
-        return path.split(''.'').reduce((acc, part) => acc && acc[part], obj);
+
+    DECLARE @LongScript NVARCHAR(MAX) = N'// Top-level imports are supported (e.g. import CryptoJS from ''crypto-js'';)
+// Access request fields & encryption targets via st.* (headers, body, params, encryptedHeaders, encryptedBodyPaths)
+const parameters = {};
+const shouldEncryptAllHeaders = Boolean(st.autoEncryptHeaders);
+const encHeadersList = st.encryptedHeaders || [];
+for (const h of st.headers || []) {
+    if (h.enabled && h.key && (shouldEncryptAllHeaders || encHeadersList.includes(h.key))) {
+        parameters[h.key] = h.value;
     }
-    function setNestedValue(obj, path, value) {
-        const parts = path.split(''.'');
-        const last = parts.pop();
-        const target = parts.reduce((acc, part) => {
-            if (!acc[part]) acc[part] = {};
-            return acc[part];
-        }, obj);
-        if (target) target[last] = value;
-    }
-    function getPrimitivePaths(obj, currentPath = '''') {
-        let paths = [];
-        for (let key in obj) {
-            if (obj.hasOwnProperty(key)) {
-                const path = currentPath ? ${currentPath}. : key;
-                if (obj[key] !== null && typeof obj[key] === ''object'') {
-                    paths = paths.concat(getPrimitivePaths(obj[key], path));
-                } else {
-                    paths.push(path);
-                }
-            }
-        }
-        return paths;
-    }
-    const parameters = {};
-    const shouldEncryptAllHeaders = typeof autoEncryptHeaders !== ''undefined'' ? autoEncryptHeaders : false;
-    const encHeadersList = encryptedHeaders || [];
-    for (let h of headers) {
-        if (h.enabled && h.key) {
-            if (shouldEncryptAllHeaders || encHeadersList.includes(h.key)) {
-                parameters[h.key] = h.value;
-            }
+}
+const bodyObj = (st.body && typeof st.body === ''object'' && !Array.isArray(st.body)) ? st.body : null;
+if (bodyObj) {
+    const targetPaths = st.autoEncryptBody ? Object.keys(bodyObj) : (st.encryptedBodyPaths || []);
+    for (const path of targetPaths) {
+        const val = path.split(''.'').reduce((acc, part) => acc && acc[part], bodyObj);
+        if (val !== undefined && val !== null) {
+            parameters[path] = val;
         }
     }
-    let bodyObj = null;
-    if (body) {
-        try {
-            bodyObj = JSON.parse(body);
-        } catch (e) {}
-    }
-    if (bodyObj) {
-        const shouldEncryptAllBody = typeof autoEncryptBody !== ''undefined'' ? autoEncryptBody : false;
-        const encBodyPathsList = encryptedBodyPaths || [];
-        if (shouldEncryptAllBody) {
-            const allPaths = getPrimitivePaths(bodyObj);
-            for (let path of allPaths) {
-                const val = getNestedValue(bodyObj, path);
-                if (val !== undefined && val !== null) {
-                    parameters[path] = val;
-                }
+}
+if (Object.keys(parameters).length > 0 && st.getEnv(''encryptUrl'')) {
+    const res = await fetch(st.getEnv(''encryptUrl''), {
+        method: ''POST'',
+        headers: { ''Content-Type'': ''application/json'' },
+        body: JSON.stringify({ channelName: st.channelName || ''Default Channel'', parameters })
+    });
+    if (res.ok) {
+        const result = await res.json();
+        const encryptedParams = result.parameters || result;
+        for (const h of st.headers || []) {
+            if (h.key && encryptedParams[h.key] !== undefined) h.value = String(encryptedParams[h.key]);
+        }
+        if (bodyObj) {
+            for (const key of Object.keys(encryptedParams)) {
+                st.setBodyField(key, encryptedParams[key]);
             }
-        } else {
-            for (let path of encBodyPathsList) {
-                const val = getNestedValue(bodyObj, path);
-                if (val !== undefined && val !== null) {
-                    parameters[path] = val;
-                }
-            }
+            return JSON.stringify(bodyObj, null, 2);
         }
     }
-    if (Object.keys(parameters).length > 0) {
-        try {
-            const chName = typeof channelName !== ''undefined'' ? channelName : ''Default Channel'';
-            const response = await fetch(''https://localhost:7131/api/v1/auth/encrypt'', {
-                method: ''POST'',
-                headers: {
-                    ''Content-Type'': ''application/json''
-                },
-                body: JSON.stringify({
-                    channelName: chName,
-                    parameters: parameters
-                })
-            });
-            if (response.ok) {
-                const result = await response.json();
-                const encryptedParams = result.parameters || result;
-                for (let h of headers) {
-                    if (h.key && encryptedParams[h.key] !== undefined) {
-                        h.value = String(encryptedParams[h.key]);
-                    }
-                }
-                if (bodyObj) {
-                    for (let key in encryptedParams) {
-                        if (encryptedParams.hasOwnProperty(key)) {
-                            if (key.includes(''.'') || getNestedValue(bodyObj, key) !== undefined) {
-                                setNestedValue(bodyObj, key, encryptedParams[key]);
-                            }
-                        }
-                    }
-                    body = JSON.stringify(bodyObj, null, 2);
-                }
-            }
-        } catch (error) {
-            console.error(''Error during payload encryption:'', error);
-        }
-    }
-    return body;
-}';
+}
+return st.body;';
+
+    DECLARE @PreDefault NVARCHAR(MAX) = N'// Top-level imports are supported (e.g. import CryptoJS from ''crypto-js'';)
+// Access request parameters & helpers directly via st.* (type "st." for autocomplete, e.g. st.headers, st.body, st.setHeader)';
+
+    DECLARE @PostDefault NVARCHAR(MAX) = N'// Top-level imports are supported across all script types
+// Access response & request parameters directly via st.* (type "st." for autocomplete, e.g. st.responseBody, st.linkResponseToRequest)';
 
     IF NOT EXISTS (SELECT 1 FROM [dbo].[Script] WHERE [UserId] = @UserId AND [Type] = 'Encryption' AND [Name] = 'Encrypt' AND [IsDefault] = 1)
     BEGIN
@@ -939,21 +957,13 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM [dbo].[Script] WHERE [UserId] = @UserId AND [Type] = 'PreRequest' AND [IsDefault] = 1)
     BEGIN
         INSERT INTO [dbo].[Script] ([Id], [UserId], [Type], [Name], [Content], [IsDefault], [OriginalContent])
-        VALUES (NEWID(), @UserId, 'PreRequest', 'Pre Request Script', 'function preScript(headers, body, params){
-    //only code written within this code block will be executed
-}', 1, 'function preScript(headers, body, params){
-    //only code written within this code block will be executed
-}');
+        VALUES (NEWID(), @UserId, 'PreRequest', 'Pre Request Script', @PreDefault, 1, @PreDefault);
     END
 
     IF NOT EXISTS (SELECT 1 FROM [dbo].[Script] WHERE [UserId] = @UserId AND [Type] = 'PostRequest' AND [IsDefault] = 1)
     BEGIN
         INSERT INTO [dbo].[Script] ([Id], [UserId], [Type], [Name], [Content], [IsDefault], [OriginalContent])
-        VALUES (NEWID(), @UserId, 'PostRequest', 'Post Request Script', 'function postScript(responseHeader, responseBody){
-    //only code written within this code block will be executed
-}', 1, 'function postScript(responseHeader, responseBody){
-    //only code written within this code block will be executed
-}');
+        VALUES (NEWID(), @UserId, 'PostRequest', 'Post Request Script', @PostDefault, 1, @PostDefault);
     END
 
     SELECT [Id], [UserId], [Type], [Name], [Content], [IsDefault], [OriginalContent], [CreatedAt], [UpdatedAt]

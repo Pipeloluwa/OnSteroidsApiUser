@@ -20,6 +20,59 @@ public class RequestService(
     private readonly IAuthDetailsHelper _authDetails = authDetailsHelper;
     private readonly ILogger<RequestService> _logger = logger;
 
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+
+    public static void HydrateJsonFields(RequestDto dto)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.CustomDocBlocksJson))
+        {
+            try
+            {
+                dto.CustomDocBlocks = JsonSerializer.Deserialize<List<CustomDocBlockDto>>(dto.CustomDocBlocksJson, _jsonOptions) ?? [];
+            }
+            catch
+            {
+                dto.CustomDocBlocks ??= [];
+            }
+        }
+        else
+        {
+            dto.CustomDocBlocks ??= [];
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.UrlEncodedDataJson))
+        {
+            try
+            {
+                dto.UrlEncodedData = JsonSerializer.Deserialize<List<KeyValueItem>>(dto.UrlEncodedDataJson, _jsonOptions) ?? [];
+            }
+            catch
+            {
+                dto.UrlEncodedData ??= [];
+            }
+        }
+        else
+        {
+            dto.UrlEncodedData ??= [];
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.TriggerConfigJson))
+        {
+            try
+            {
+                dto.TriggerConfig = JsonSerializer.Deserialize<TriggerConfigDto>(dto.TriggerConfigJson, _jsonOptions);
+            }
+            catch
+            {
+                // leave null on malformed payload
+            }
+        }
+    }
+
     public async Task<(int StatusCode, object Response)> SaveRequestStateAsync(SaveRequestStateRequest req, Guid userId)
     {
         // 1. Resolve CapsuleId
@@ -55,6 +108,14 @@ public class RequestService(
             CapsuleId = capsuleId,
             UserId = userId,
             Name = string.IsNullOrWhiteSpace(req.Name) ? "New Request" : req.Name,
+            Description = req.Description,
+            DocNotes = req.DocNotes,
+            TestRailPreconditions = req.TestRailPreconditions,
+            TestRailSteps = req.TestRailSteps,
+            TestRailExpected = req.TestRailExpected,
+            CustomDocBlocksJson = req.CustomDocBlocks != null
+                ? JsonSerializer.Serialize(req.CustomDocBlocks, _jsonOptions)
+                : null,
             Url = req.Url ?? string.Empty,
             Method = string.IsNullOrWhiteSpace(req.Method) ? "GET" : req.Method.ToUpperInvariant(),
             PayloadType = req.PayloadType ?? "params",
@@ -63,16 +124,26 @@ public class RequestService(
             RawBody = req.RawBody,
             RawBodyJson = req.RawBodyJson,
             RawBodyXml = req.RawBodyXml,
+            RawBodyText = req.RawBodyText,
+            UrlEncodedDataJson = req.UrlEncodedData != null
+                ? JsonSerializer.Serialize(req.UrlEncodedData, _jsonOptions)
+                : null,
+            GraphqlQuery = req.GraphqlQuery,
+            GraphqlVariables = req.GraphqlVariables,
             AuthType = req.Auth?.Type ?? "none",
             AuthToken = req.Auth?.Token,
             PreRequestScript = req.Scripts?.PreRequest,
             PostResponseScript = req.Scripts?.PostResponse,
             TestScript = req.Scripts?.TestScript,
             TestScriptEnabled = req.Scripts?.TestScriptEnabled ?? false,
+            PreRequestLanguage = req.PreRequestLanguage ?? req.Scripts?.PreRequestLanguage ?? "javascript",
+            PostResponseLanguage = req.PostResponseLanguage ?? req.Scripts?.PostResponseLanguage ?? "javascript",
+            TestScriptLanguage = req.TestScriptLanguage ?? req.Scripts?.TestScriptLanguage ?? "javascript",
             EncryptionAlgorithm = req.Encryption?.Algorithm ?? "none",
             EncryptionKey = req.Encryption?.Key,
             AutoEncryptBody = req.Encryption?.AutoEncryptBody ?? false,
             AutoEncryptHeaders = req.Encryption?.AutoEncryptHeaders ?? false,
+            EncryptionChannelName = req.Encryption?.ChannelName,
             EncryptedHeaders = req.Encryption?.EncryptedHeaders != null
                 ? JsonSerializer.Serialize(req.Encryption.EncryptedHeaders)
                 : null,
@@ -80,11 +151,15 @@ public class RequestService(
                 ? JsonSerializer.Serialize(req.Encryption.EncryptedBodyPaths)
                 : null,
             EncryptionScript = req.Encryption?.Script,
+            EncryptionScriptLanguage = req.EncryptionScriptLanguage ?? req.Encryption?.ScriptLanguage ?? "javascript",
             FollowRedirects = req.Settings?.FollowRedirects ?? true,
             VerifySsl = req.Settings?.VerifySsl ?? true,
             EnableCookies = req.Settings?.EnableCookies ?? true,
             BypassCors = req.Settings?.BypassCors ?? true,
             PostTriggerTabId = req.PostTriggerTabId,
+            TriggerConfigJson = req.TriggerConfig != null
+                ? JsonSerializer.Serialize(req.TriggerConfig, _jsonOptions)
+                : null,
             AutoAuthEnabled = req.AutoAuthEnabled ?? false
         };
 
@@ -135,6 +210,25 @@ public class RequestService(
         var jsonFormData = JsonSerializer.Serialize(formDataList);
         savedReq.FormData = (await _requestRepo.SyncFormDataAsync(savedReq.Id, jsonFormData)).ToList();
 
+        // Preserve request payload values if the connected DB schema has not yet been migrated to the new columns
+        savedReq.Description ??= dto.Description;
+        savedReq.DocNotes ??= dto.DocNotes;
+        savedReq.TestRailPreconditions ??= dto.TestRailPreconditions;
+        savedReq.TestRailSteps ??= dto.TestRailSteps;
+        savedReq.TestRailExpected ??= dto.TestRailExpected;
+        savedReq.CustomDocBlocksJson ??= dto.CustomDocBlocksJson;
+        savedReq.RawBodyText ??= dto.RawBodyText;
+        savedReq.UrlEncodedDataJson ??= dto.UrlEncodedDataJson;
+        savedReq.GraphqlQuery ??= dto.GraphqlQuery;
+        savedReq.GraphqlVariables ??= dto.GraphqlVariables;
+        savedReq.PreRequestLanguage ??= dto.PreRequestLanguage;
+        savedReq.PostResponseLanguage ??= dto.PostResponseLanguage;
+        savedReq.TestScriptLanguage ??= dto.TestScriptLanguage;
+        savedReq.EncryptionScriptLanguage ??= dto.EncryptionScriptLanguage;
+        savedReq.EncryptionChannelName ??= dto.EncryptionChannelName;
+        savedReq.TriggerConfigJson ??= dto.TriggerConfigJson;
+        HydrateJsonFields(savedReq);
+
         var sanitizedReq = new
         {
             savedReq.Id,
@@ -170,6 +264,7 @@ public class RequestService(
         req.Params = (await _requestRepo.GetParamsByRequestAsync(id)).ToList();
         req.Headers = (await _requestRepo.GetHeadersByRequestAsync(id)).ToList();
         req.FormData = (await _requestRepo.GetFormDataByRequestAsync(id)).ToList();
+        HydrateJsonFields(req);
 
         return BaseResponseHelpers.ReturnSuccess("Request retrieved", req);
     }
@@ -182,6 +277,7 @@ public class RequestService(
             req.Params = (await _requestRepo.GetParamsByRequestAsync(req.Id)).ToList();
             req.Headers = (await _requestRepo.GetHeadersByRequestAsync(req.Id)).ToList();
             req.FormData = (await _requestRepo.GetFormDataByRequestAsync(req.Id)).ToList();
+            HydrateJsonFields(req);
         }
 
         return BaseResponseHelpers.ReturnSuccess("Requests retrieved", requests);
@@ -205,6 +301,7 @@ public class RequestService(
         duplicated.Params = (await _requestRepo.GetParamsByRequestAsync(duplicated.Id)).ToList();
         duplicated.Headers = (await _requestRepo.GetHeadersByRequestAsync(duplicated.Id)).ToList();
         duplicated.FormData = (await _requestRepo.GetFormDataByRequestAsync(duplicated.Id)).ToList();
+        HydrateJsonFields(duplicated);
 
         _logger.LogInformation("[{RequestId}] User {UserId} duplicated request {SourceId} to {NewId}", _authDetails.RequestId, userId, sourceId, duplicated.Id);
         return BaseResponseHelpers.ReturnSuccess("Request duplicated successfully", duplicated);

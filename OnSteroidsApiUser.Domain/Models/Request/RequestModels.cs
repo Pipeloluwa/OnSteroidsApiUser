@@ -31,12 +31,38 @@ public class RequestFormDataDto
     public int SortOrder { get; set; }
 }
 
+public class CustomDocBlockDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Kind { get; set; } = "description";
+    public string Text { get; set; } = string.Empty;
+}
+
+public class TriggerConfigDto
+{
+    public string Condition { get; set; } = "always";
+    public int? ExpectedStatus { get; set; } = 200;
+    public int? DelayMs { get; set; } = 250;
+    public int? RetryCountOnFail { get; set; } = 0;
+    public int? ScheduleIntervalMs { get; set; } = 0;
+    public string? ScheduleStartAt { get; set; }
+    public string? ScheduleEndAt { get; set; }
+    public List<string>? TriggerRequestIds { get; set; }
+}
+
 public class RequestDto
 {
     public Guid Id { get; set; }
     public Guid CapsuleId { get; set; }
     public Guid UserId { get; set; }
     public string Name { get; set; } = "New Request";
+    public string? Description { get; set; }
+    public string? DocNotes { get; set; }
+    public string? TestRailPreconditions { get; set; }
+    public string? TestRailSteps { get; set; }
+    public string? TestRailExpected { get; set; }
+    public string? CustomDocBlocksJson { get; set; }
+    public List<CustomDocBlockDto> CustomDocBlocks { get; set; } = [];
     public string Url { get; set; } = string.Empty;
     public string Method { get; set; } = "GET";
 
@@ -46,6 +72,11 @@ public class RequestDto
     public string? RawBody { get; set; }
     public string? RawBodyJson { get; set; }
     public string? RawBodyXml { get; set; }
+    public string? RawBodyText { get; set; }
+    public string? UrlEncodedDataJson { get; set; }
+    public List<KeyValueItem> UrlEncodedData { get; set; } = [];
+    public string? GraphqlQuery { get; set; }
+    public string? GraphqlVariables { get; set; }
 
     public string AuthType { get; set; } = "none";
     public string? AuthToken { get; set; }
@@ -54,20 +85,27 @@ public class RequestDto
     public string? PostResponseScript { get; set; }
     public string? TestScript { get; set; }
     public bool TestScriptEnabled { get; set; } = false;
+    public string? PreRequestLanguage { get; set; } = "javascript";
+    public string? PostResponseLanguage { get; set; } = "javascript";
+    public string? TestScriptLanguage { get; set; } = "javascript";
 
     public string EncryptionAlgorithm { get; set; } = "none";
     public string? EncryptionKey { get; set; }
     public bool AutoEncryptBody { get; set; }
     public bool AutoEncryptHeaders { get; set; }
+    public string? EncryptionChannelName { get; set; }
     public string? EncryptedHeaders { get; set; }
     public string? EncryptedBodyPaths { get; set; }
     public string? EncryptionScript { get; set; }
+    public string? EncryptionScriptLanguage { get; set; } = "javascript";
 
     public bool FollowRedirects { get; set; } = true;
     public bool VerifySsl { get; set; } = true;
     public bool EnableCookies { get; set; } = true;
     public bool BypassCors { get; set; } = true;
     public string? PostTriggerTabId { get; set; }
+    public string? TriggerConfigJson { get; set; }
+    public TriggerConfigDto? TriggerConfig { get; set; }
     public bool AutoAuthEnabled { get; set; } = false;
 
     public DateTime CreatedAt { get; set; }
@@ -107,6 +145,9 @@ public class ScriptsStateDto
     public string? PostResponse { get; set; }
     public string? TestScript { get; set; }
     public bool TestScriptEnabled { get; set; } = false;
+    public string? PreRequestLanguage { get; set; }
+    public string? PostResponseLanguage { get; set; }
+    public string? TestScriptLanguage { get; set; }
 }
 
 public class EncryptionStateDto
@@ -119,6 +160,7 @@ public class EncryptionStateDto
     public List<string>? EncryptedHeaders { get; set; }
     public List<string>? EncryptedBodyPaths { get; set; }
     public string? Script { get; set; }
+    public string? ScriptLanguage { get; set; }
 }
 
 public class SettingsStateDto
@@ -135,6 +177,12 @@ public class SaveRequestStateRequest
     public string? CapsuleId { get; set; }
     public string? CapsuleName { get; set; }
     public string Name { get; set; } = "New Request";
+    public string? Description { get; set; }
+    public string? DocNotes { get; set; }
+    public string? TestRailPreconditions { get; set; }
+    public string? TestRailSteps { get; set; }
+    public string? TestRailExpected { get; set; }
+    public List<CustomDocBlockDto>? CustomDocBlocks { get; set; }
     public string Url { get; set; } = string.Empty;
     public string Method { get; set; } = "GET";
 
@@ -144,13 +192,22 @@ public class SaveRequestStateRequest
     public string? RawBody { get; set; }
     public string? RawBodyJson { get; set; }
     public string? RawBodyXml { get; set; }
+    public string? RawBodyText { get; set; }
+    public List<KeyValueItem>? UrlEncodedData { get; set; }
+    public string? GraphqlQuery { get; set; }
+    public string? GraphqlVariables { get; set; }
 
     public AuthStateDto? Auth { get; set; }
     public ScriptsStateDto? Scripts { get; set; }
     public EncryptionStateDto? Encryption { get; set; }
     public SettingsStateDto? Settings { get; set; }
     public string? PostTriggerTabId { get; set; }
+    public TriggerConfigDto? TriggerConfig { get; set; }
     public bool? AutoAuthEnabled { get; set; }
+    public string? PreRequestLanguage { get; set; }
+    public string? PostResponseLanguage { get; set; }
+    public string? TestScriptLanguage { get; set; }
+    public string? EncryptionScriptLanguage { get; set; }
 
     public List<KeyValueItem>? Params { get; set; }
     public List<KeyValueItem>? Headers { get; set; }

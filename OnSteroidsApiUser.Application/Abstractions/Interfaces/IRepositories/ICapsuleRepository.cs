@@ -4,9 +4,9 @@ namespace OnSteroidsApiUser.Application.Abstractions.Interfaces.IRepositories;
 
 public interface ICapsuleRepository
 {
-    Task<CapsuleDto?> CreateAsync(Guid userId, string name, Guid? id = null, string? autoAuthEnabled = null, string? autoAuthEndpointId = null);
+    Task<CapsuleDto?> CreateAsync(Guid userId, string name, Guid? id = null, string? autoAuthEnabled = null, string? autoAuthEndpointId = null, string? lockMode = null, string? brdSectionsJson = null);
     Task<IEnumerable<CapsuleDto>> GetAllByUserAsync(Guid userId);
     Task<CapsuleDto?> GetByIdAsync(Guid id, Guid userId);
-    Task<CapsuleDto?> UpdateAsync(Guid id, Guid userId, string name, string? autoAuthEnabled = null, string? autoAuthEndpointId = null);
+    Task<CapsuleDto?> UpdateAsync(Guid id, Guid userId, string name, string? autoAuthEnabled = null, string? autoAuthEndpointId = null, string? lockMode = null, string? brdSectionsJson = null);
     Task DeleteAsync(Guid id, Guid userId);
 }
