@@ -14,6 +14,7 @@ namespace OnSteroidsApiUser.Application.Services;
 
 public class AuthService(
     IUserAuthRepository userAuthRepository,
+    ILicenseRepository licenseRepository,
     IJwtTokenHelper jwtTokenHelper,
     IEmailService emailService,
     IOptions<AppSettings> appSettings,
@@ -28,6 +29,7 @@ public class AuthService(
 ) : IAuthService
 {
     private readonly IUserAuthRepository _userAuthRepo = userAuthRepository;
+    private readonly ILicenseRepository _licenseRepo = licenseRepository;
     private readonly IJwtTokenHelper _jwtTokenHelper = jwtTokenHelper;
     private readonly IEmailService _emailService = emailService;
     private readonly AppSettings _appSettings = appSettings.Value;
@@ -265,6 +267,8 @@ public class AuthService(
                 return BaseResponseHelpers.ReturnServerErrorData("Could not save password. Please try again.", null);
             }
 
+            await EnrichWithLicenseStatusAsync(updatedUser);
+
             var (token, expiresAt) = _jwtTokenHelper.GenerateToken(updatedUser.Id, updatedUser.Email);
             var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
             var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
@@ -355,6 +359,7 @@ public class AuthService(
         var authenticatedUser = await _userAuthRepo.SetAuthenticatedAsync(user.Id) ?? user;
         authenticatedUser.IsAuthenticated = true;
         authenticatedUser.HasPassword = true;
+        await EnrichWithLicenseStatusAsync(authenticatedUser);
 
         var (token, expiresAt) = _jwtTokenHelper.GenerateToken(authenticatedUser.Id, authenticatedUser.Email);
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -422,6 +427,7 @@ public class AuthService(
             return BaseResponseHelpers.ReturnNotFoundError("User not found", null);
         }
 
+        await EnrichWithLicenseStatusAsync(user);
         return BaseResponseHelpers.ReturnSuccess("User retrieved", user);
     }
 
@@ -440,6 +446,8 @@ public class AuthService(
             return BaseResponseHelpers.ReturnValidationSemanticErrorData("Invalid or expired refresh token", null);
         }
 
+        await EnrichWithLicenseStatusAsync(user);
+
         var (token, expiresAt) = _jwtTokenHelper.GenerateToken(user.Id, user.Email);
         
         var newRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -455,5 +463,36 @@ public class AuthService(
         };
 
         return BaseResponseHelpers.ReturnSuccess("Token refreshed successfully", authResponse);
+    }
+
+    private async Task EnrichWithLicenseStatusAsync(UserAuthDto user)
+    {
+        try
+        {
+            var status = await _licenseRepo.GetStatusByUserIdAsync(user.Id);
+            if (status == null)
+            {
+                user.IsPersonalLicense = LicenseService.IsPersonalIndividualLicense(user.LicenseType, user.IndividualType, user.SubscriptionTier);
+                user.SubscriptionTier = LicenseService.EnforceEffectiveTier(user.SubscriptionTier, user.LicenseType, user.IndividualType);
+                return;
+            }
+
+            LicenseService.SanitizeStatus(status);
+            user.SubscriptionTier = status.SubscriptionTier;
+            user.SubscriptionExpiresAt = status.ExpiresAt;
+            user.MaskedLicenseCode = status.MaskedCode;
+            user.LicenseType = status.LicenseType;
+            user.IndividualType = status.IndividualType;
+            user.IsPersonalLicense = status.IsPersonalLicense;
+            user.IsEmailOtpVerified = status.IsEmailOtpVerified;
+            user.LicenseAccessSource = status.AccessSource;
+            user.LicensedEmailPattern = status.LicensedEmailPattern;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[{RequestId}] Skipping dynamic license enrichment for user {UserId}", _authDetails.RequestId, user.Id);
+            user.IsPersonalLicense = LicenseService.IsPersonalIndividualLicense(user.LicenseType, user.IndividualType, user.SubscriptionTier);
+            user.SubscriptionTier = LicenseService.EnforceEffectiveTier(user.SubscriptionTier, user.LicenseType, user.IndividualType);
+        }
     }
 }

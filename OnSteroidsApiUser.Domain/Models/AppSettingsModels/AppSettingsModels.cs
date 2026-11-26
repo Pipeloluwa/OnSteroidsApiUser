@@ -10,6 +10,14 @@ public class AppSettings
     public EmailSettings? EmailSettings { get; set; }
     public RateLimitPolicySettings? GlobalRateLimiter { get; set; } = new();
     public LogSettings? LogSettings { get; set; } = new();
+    public LicenseSettings? LicenseSettings { get; set; } = new();
+}
+
+public class LicenseSettings
+{
+    public string? AdminMasterKey { get; set; }
+    public int DefaultMaxActivationsPro { get; set; } = 2;
+    public int DefaultMaxActivationsEnterprise { get; set; } = 10;
 }
 
 public class SqlSettings

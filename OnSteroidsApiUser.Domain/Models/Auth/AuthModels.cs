@@ -63,6 +63,15 @@ public class UserAuthDto
     public string? RefreshToken { get; set; }
     [JsonIgnore]
     public DateTime? RefreshTokenExpiryTime { get; set; }
+    public string SubscriptionTier { get; set; } = "community";
+    public DateTime? SubscriptionExpiresAt { get; set; }
+    public string? MaskedLicenseCode { get; set; }
+    public string? LicenseType { get; set; }
+    public string? IndividualType { get; set; }
+    public bool IsPersonalLicense { get; set; }
+    public bool IsEmailOtpVerified { get; set; }
+    public string? LicenseAccessSource { get; set; }
+    public string? LicensedEmailPattern { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

@@ -256,6 +256,7 @@ public static class ProgramExtension
         services.AddScoped<IRequestHistoryRepository, RequestHistoryRepository>();
         services.AddScoped<IScriptRepository, ScriptRepository>();
         services.AddScoped<IWorkspaceStateRepository, WorkspaceStateRepository>();
+        services.AddScoped<ILicenseRepository, LicenseRepository>();
 
         // Application Helpers & Services
         services.AddSingleton<IJwtTokenHelper, JwtTokenHelper>();
@@ -270,6 +271,7 @@ public static class ProgramExtension
         services.AddScoped<IScriptService, ScriptService>();
         services.AddScoped<IWorkspaceStateService, WorkspaceStateService>();
         services.AddScoped<IImportService, ImportService>();
+        services.AddScoped<ILicenseService, LicenseService>();
     }
 
     public static void AddProjectValidators(this IServiceCollection services)

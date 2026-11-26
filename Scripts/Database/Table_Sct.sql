@@ -223,6 +223,10 @@ CREATE TABLE [dbo].[UserAuth](
 	[RefreshTokenExpiryTime] [datetime2](7) NULL,
 	[PasswordHash] [nvarchar](512) NULL,
 	[IsOtpVerified] [bit] NOT NULL,
+	[EmailOtpVerifiedAt] [datetime2](7) NULL,
+	[SubscriptionTier] [nvarchar](32) NOT NULL CONSTRAINT [DF_UserAuth_SubscriptionTier] DEFAULT (N'community'),
+	[SubscriptionExpiresAt] [datetime2](7) NULL,
+	[ActiveLicenseKeyId] [uniqueidentifier] NULL,
  CONSTRAINT [PK_UserAuth] PRIMARY KEY CLUSTERED 
 (
 	[Id] ASC
@@ -232,6 +236,98 @@ CREATE TABLE [dbo].[UserAuth](
 	[Email] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[LicenseKey] ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[LicenseKey](
+	[Id] [uniqueidentifier] NOT NULL CONSTRAINT [DF_LicenseKey_Id] DEFAULT (NEWID()),
+	[LicenseKey] [nvarchar](128) NULL,
+	[CodeHash] [nvarchar](64) NULL,
+	[MaskedCode] [nvarchar](64) NULL,
+	[Tier] [nvarchar](32) NOT NULL CONSTRAINT [DF_LicenseKey_Tier] DEFAULT (N'professional'),
+	[LicenseType] [nvarchar](32) NOT NULL CONSTRAINT [DF_LicenseKey_LicenseType] DEFAULT (N'enterprise'),
+	[IndividualType] [nvarchar](32) NULL,
+	[BillingCycle] [nvarchar](32) NOT NULL CONSTRAINT [DF_LicenseKey_BillingCycle] DEFAULT (N'annual'),
+	[DurationDays] [int] NULL,
+	[MaxActivations] [int] NOT NULL CONSTRAINT [DF_LicenseKey_MaxActivations] DEFAULT (10),
+	[ActiveActivations] [int] NOT NULL CONSTRAINT [DF_LicenseKey_ActiveActivations] DEFAULT (0),
+	[AllowedEmail] [nvarchar](320) NULL,
+	[Notes] [nvarchar](500) NULL,
+	[IsRevoked] [bit] NOT NULL CONSTRAINT [DF_LicenseKey_IsRevoked] DEFAULT (0),
+	[RevokedAt] [datetime2](7) NULL,
+	[ExpiresAt] [datetime2](7) NULL,
+	[CreatedAt] [datetime2](7) NOT NULL CONSTRAINT [DF_LicenseKey_CreatedAt] DEFAULT (SYSUTCDATETIME()),
+	[UpdatedAt] [datetime2](7) NOT NULL CONSTRAINT [DF_LicenseKey_UpdatedAt] DEFAULT (SYSUTCDATETIME()),
+ CONSTRAINT [PK_LicenseKey] PRIMARY KEY CLUSTERED ([Id] ASC)
+) ON [PRIMARY]
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_LicenseKey_CodeHash] ON [dbo].[LicenseKey] ([CodeHash] ASC) WHERE [CodeHash] IS NOT NULL
+GO
+CREATE NONCLUSTERED INDEX [IX_LicenseKey_AllowedEmail] ON [dbo].[LicenseKey] ([AllowedEmail] ASC)
+GO
+CREATE OR ALTER TRIGGER [dbo].[TR_LicenseKey_SyncMetadata]
+ON [dbo].[LicenseKey]
+AFTER INSERT, UPDATE
+AS
+BEGIN
+	SET NOCOUNT ON;
+	IF TRIGGER_NESTLEVEL() > 1 RETURN;
+
+	UPDATE lk
+	SET
+		lk.[LicenseKey] = CASE
+			WHEN i.[LicenseKey] IS NULL THEN lk.[LicenseKey]
+			ELSE UPPER(LTRIM(RTRIM(i.[LicenseKey])))
+		END,
+		lk.[CodeHash] = CASE
+			WHEN NULLIF(LTRIM(RTRIM(COALESCE(i.[LicenseKey], N''))), N'') IS NOT NULL
+				 AND (NULLIF(LTRIM(RTRIM(COALESCE(i.[CodeHash], N''))), N'') IS NULL OR UPDATE([LicenseKey]))
+			THEN CONVERT(NVARCHAR(64), HASHBYTES('SHA2_256', CAST(UPPER(REPLACE(LTRIM(RTRIM(i.[LicenseKey])), N' ', N'')) AS VARCHAR(128))), 2)
+			ELSE i.[CodeHash]
+		END,
+		lk.[MaskedCode] = CASE
+			WHEN NULLIF(LTRIM(RTRIM(COALESCE(i.[LicenseKey], N''))), N'') IS NOT NULL
+				 AND (NULLIF(LTRIM(RTRIM(COALESCE(i.[MaskedCode], N''))), N'') IS NULL OR UPDATE([LicenseKey]))
+			THEN CASE
+				WHEN LEN(UPPER(REPLACE(LTRIM(RTRIM(i.[LicenseKey])), N' ', N''))) >= 13
+				THEN LEFT(UPPER(REPLACE(LTRIM(RTRIM(i.[LicenseKey])), N' ', N'')), 8) + N'-••••-••••-' + RIGHT(UPPER(REPLACE(LTRIM(RTRIM(i.[LicenseKey])), N' ', N'')), 4)
+				ELSE LEFT(UPPER(REPLACE(LTRIM(RTRIM(i.[LicenseKey])), N' ', N'')), 4) + N'-••••'
+			END
+			ELSE i.[MaskedCode]
+		END,
+		lk.[AllowedEmail] = NULLIF(LOWER(LTRIM(RTRIM(i.[AllowedEmail]))), N''),
+		lk.[LicenseType] = LOWER(LTRIM(RTRIM(COALESCE(NULLIF(i.[LicenseType], N''), lk.[Tier], N'enterprise')))),
+		lk.[IndividualType] = NULLIF(LOWER(LTRIM(RTRIM(i.[IndividualType]))), N''),
+		lk.[UpdatedAt] = SYSUTCDATETIME()
+	FROM [dbo].[LicenseKey] lk
+	INNER JOIN inserted i ON i.[Id] = lk.[Id];
+END
+GO
+/****** Object:  Table [dbo].[LicenseActivation] ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[LicenseActivation](
+	[Id] [uniqueidentifier] NOT NULL CONSTRAINT [DF_LicenseActivation_Id] DEFAULT (NEWID()),
+	[LicenseKeyId] [uniqueidentifier] NOT NULL,
+	[UserId] [uniqueidentifier] NOT NULL,
+	[DeviceLabel] [nvarchar](150) NULL,
+	[IsActive] [bit] NOT NULL CONSTRAINT [DF_LicenseActivation_IsActive] DEFAULT (1),
+	[ActivatedAt] [datetime2](7) NOT NULL CONSTRAINT [DF_LicenseActivation_ActivatedAt] DEFAULT (SYSUTCDATETIME()),
+	[LastVerifiedAt] [datetime2](7) NOT NULL CONSTRAINT [DF_LicenseActivation_LastVerifiedAt] DEFAULT (SYSUTCDATETIME()),
+	[DeactivatedAt] [datetime2](7) NULL,
+ CONSTRAINT [PK_LicenseActivation] PRIMARY KEY CLUSTERED ([Id] ASC),
+ CONSTRAINT [FK_LicenseActivation_LicenseKey] FOREIGN KEY([LicenseKeyId]) REFERENCES [dbo].[LicenseKey]([Id]),
+ CONSTRAINT [FK_LicenseActivation_UserAuth] FOREIGN KEY([UserId]) REFERENCES [dbo].[UserAuth]([Id])
+) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_LicenseActivation_UserId_IsActive] ON [dbo].[LicenseActivation] ([UserId] ASC, [IsActive] ASC)
+GO
+CREATE NONCLUSTERED INDEX [IX_LicenseActivation_LicenseKeyId_IsActive] ON [dbo].[LicenseActivation] ([LicenseKeyId] ASC, [IsActive] ASC)
 GO
 /****** Object:  Table [dbo].[UserWorkspaceState]    Script Date: 10/26/2026 7:57:59 AM ******/
 SET ANSI_NULLS ON
